@@ -60,6 +60,7 @@ export function ChatbotFlow() {
   const [unjustifiedAbsences, setUnjustifiedAbsences] = useState<string[]>([]);
   const [pisInput, setPisInput] = useState("");
   const [tempInput, setTempInput] = useState("");
+  const [isThirdSuspension, setIsThirdSuspension] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
