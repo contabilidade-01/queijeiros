@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, X, Download, CalendarIcon, User, Building2, AlertTriangle } from "lucide-react";
+import { Plus, X, Download, CalendarIcon, User, Building2, AlertTriangle, ShieldAlert } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
