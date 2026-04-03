@@ -17,6 +17,7 @@ import { downloadSuspensionDoc, type SuspensionData } from "@/lib/generateSuspen
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { maskPIS } from "@/lib/masks";
 
 interface Employee {
   id: string;
@@ -163,7 +164,7 @@ export function SuspensionForm() {
           )}
           <div>
             <Label htmlFor="pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-            <Input id="pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
+            <Input id="pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(maskPIS(e.target.value))} className="mt-1" />
           </div>
         </CardContent>
       </Card>

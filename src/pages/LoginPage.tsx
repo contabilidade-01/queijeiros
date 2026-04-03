@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Lock, LogIn } from "lucide-react";
+import { maskCNPJ } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,7 +87,7 @@ const LoginPage = () => {
                   id="cnpj"
                   placeholder="00.000.000/0000-00"
                   value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
+                  onChange={(e) => setCnpj(maskCNPJ(e.target.value))}
                   className="pl-10"
                 />
               </div>
