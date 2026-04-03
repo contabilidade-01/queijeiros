@@ -99,6 +99,7 @@ export function SuspensionForm() {
       previousSuspensions,
       recentAbsenceDate,
       unjustifiedAbsences,
+      isThirdSuspension,
     };
 
     try {
