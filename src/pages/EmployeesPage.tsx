@@ -133,7 +133,7 @@ const EmployeesPage = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>CPF *</Label>
-                  <Input placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} className="mt-1" />
+                  <Input placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(maskCPF(e.target.value))} className="mt-1" />
                 </div>
                 <div>
                   <Label>PIS <span className="text-xs text-muted-foreground">(opcional)</span></Label>
