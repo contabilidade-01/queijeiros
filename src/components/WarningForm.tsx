@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, Download, CalendarIcon, User, Building2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,26 +11,56 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { downloadWarningDoc, type WarningData } from "@/lib/generateWarningDoc";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+interface Employee {
+  id: string;
+  name: string;
+  cpf: string;
+  pis: string | null;
+}
+
 export function WarningForm() {
-  const [employeeName, setEmployeeName] = useState("");
+  const { company } = useAuth();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [pis, setPis] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [companyName, setCompanyName] = useState("RESTAURANTE DO QUEIJEIRO 3 LIMITADA");
-  const [cnpj, setCnpj] = useState("52.191.264/0001-73");
   const [warningDate, setWarningDate] = useState<Date>();
   const [reason, setReason] = useState("");
-  
+
   const [previousWarnings, setPreviousWarnings] = useState<string[]>([]);
   const [unjustifiedAbsences, setUnjustifiedAbsences] = useState<string[]>([]);
 
   const [newWarning, setNewWarning] = useState("");
   const [newAbsence, setNewAbsence] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+
+  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
+
+  useEffect(() => {
+    if (company) {
+      supabase
+        .from("employees")
+        .select("id, name, cpf, pis")
+        .eq("company_id", company.id)
+        .eq("active", true)
+        .order("name")
+        .then(({ data }) => {
+          if (data) setEmployees(data);
+        });
+    }
+  }, [company]);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      setPis(selectedEmployee.pis || "");
+    }
+  }, [selectedEmployee]);
 
   const addItem = (list: string[], setList: (v: string[]) => void, value: string, setValue: (v: string) => void) => {
     if (value.trim()) {
@@ -44,16 +74,23 @@ export function WarningForm() {
   };
 
   const handleGenerate = async () => {
-    if (!employeeName || !warningDate || !cpf || !reason) {
-      toast.error("Preencha os campos obrigatórios: Nome, CPF, Data e Motivo");
+    if (!selectedEmployee || !warningDate || !reason) {
+      toast.error("Selecione o funcionário, data e motivo");
       return;
     }
 
     setIsGenerating(true);
 
     const data: WarningData = {
-      employeeName, pis, cpf, companyName, cnpj,
-      warningDate, reason, previousWarnings, unjustifiedAbsences,
+      employeeName: selectedEmployee.name,
+      pis,
+      cpf: selectedEmployee.cpf,
+      companyName: company?.name || "",
+      cnpj: company?.cnpj || "",
+      warningDate,
+      reason,
+      previousWarnings,
+      unjustifiedAbsences,
     };
 
     try {
@@ -61,17 +98,18 @@ export function WarningForm() {
 
       await supabase.from("issued_documents").insert({
         document_type: "warning",
-        employee_name: employeeName,
-        employee_cpf: cpf,
+        employee_name: selectedEmployee.name,
+        employee_cpf: selectedEmployee.cpf,
         employee_pis: pis || null,
-        company_name: companyName,
-        company_cnpj: cnpj,
+        company_name: company?.name || "",
+        company_cnpj: company?.cnpj || "",
+        company_id: company?.id,
         start_date: format(warningDate, "yyyy-MM-dd"),
         description: reason.substring(0, 200),
       });
 
       toast.success("Advertência gerada e salva no histórico!");
-    } catch (error) {
+    } catch {
       toast.error("Erro ao gerar documento");
     } finally {
       setIsGenerating(false);
@@ -82,28 +120,39 @@ export function WarningForm() {
 
   return (
     <div className="space-y-4">
-      {/* Employee Info */}
+      {/* Employee Select */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <User className="h-4 w-4 text-primary" />
-            Dados do Funcionário
+            Funcionário
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="w-name">Nome Completo *</Label>
-            <Input id="w-name" placeholder="Ex: João da Silva" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="mt-1" />
+            <Label>Selecionar Funcionário *</Label>
+            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Escolha o funcionário" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.name} — {emp.cpf}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="w-cpf">CPF *</Label>
-              <Input id="w-cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} className="mt-1" />
+          {selectedEmployee && (
+            <div className="rounded-lg bg-muted p-3 space-y-1">
+              <p className="text-sm"><span className="text-muted-foreground">CPF:</span> {selectedEmployee.cpf}</p>
+              {selectedEmployee.pis && <p className="text-sm"><span className="text-muted-foreground">PIS:</span> {selectedEmployee.pis}</p>}
             </div>
-            <div>
-              <Label htmlFor="w-pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-              <Input id="w-pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
-            </div>
+          )}
+          <div>
+            <Label htmlFor="w-pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <Input id="w-pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
           </div>
         </CardContent>
       </Card>
@@ -113,17 +162,13 @@ export function WarningForm() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Building2 className="h-4 w-4 text-primary" />
-            Dados da Empresa
+            Empresa
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="w-company">Razão Social</Label>
-            <Input id="w-company" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="w-cnpj">CNPJ</Label>
-            <Input id="w-cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} className="mt-1" />
+        <CardContent>
+          <div className="rounded-lg bg-muted p-3 space-y-1">
+            <p className="text-sm font-medium">{company?.name}</p>
+            <p className="text-xs text-muted-foreground">CNPJ: {company?.cnpj}</p>
           </div>
         </CardContent>
       </Card>
@@ -164,12 +209,10 @@ export function WarningForm() {
         </CardContent>
       </Card>
 
-      {/* Previous Warnings & Absences */}
+      {/* History */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-base">
-            Histórico
-          </CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">Histórico</CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
           <div>

@@ -5,21 +5,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 
 const HistoryPage = () => {
   const navigate = useNavigate();
+  const { company } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: documents, isLoading } = useQuery({
-    queryKey: ["issued-documents"],
+    queryKey: ["issued-documents", company?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const query = supabase
         .from("issued_documents")
         .select("*")
         .order("created_at", { ascending: false });
+
+      if (company?.id) {
+        query.eq("company_id", company.id);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
@@ -45,7 +53,7 @@ const HistoryPage = () => {
           </Button>
           <div>
             <h1 className="text-lg font-bold text-foreground">Histórico de Documentos</h1>
-            <p className="text-xs text-muted-foreground">Documentos emitidos</p>
+            <p className="text-xs text-muted-foreground">{company?.name}</p>
           </div>
         </div>
       </header>

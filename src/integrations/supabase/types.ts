@@ -14,9 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      companies: {
+        Row: {
+          cnpj: string
+          created_at: string
+          id: string
+          name: string
+          password: string
+        }
+        Insert: {
+          cnpj: string
+          created_at?: string
+          id?: string
+          name: string
+          password: string
+        }
+        Update: {
+          cnpj?: string
+          created_at?: string
+          id?: string
+          name?: string
+          password?: string
+        }
+        Relationships: []
+      }
+      employees: {
+        Row: {
+          active: boolean
+          company_id: string
+          cpf: string
+          created_at: string
+          id: string
+          name: string
+          pis: string | null
+        }
+        Insert: {
+          active?: boolean
+          company_id: string
+          cpf: string
+          created_at?: string
+          id?: string
+          name: string
+          pis?: string | null
+        }
+        Update: {
+          active?: boolean
+          company_id?: string
+          cpf?: string
+          created_at?: string
+          id?: string
+          name?: string
+          pis?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       issued_documents: {
         Row: {
           company_cnpj: string
+          company_id: string | null
           company_name: string
           created_at: string
           description: string | null
@@ -31,6 +94,7 @@ export type Database = {
         }
         Insert: {
           company_cnpj: string
+          company_id?: string | null
           company_name: string
           created_at?: string
           description?: string | null
@@ -45,6 +109,7 @@ export type Database = {
         }
         Update: {
           company_cnpj?: string
+          company_id?: string | null
           company_name?: string
           created_at?: string
           description?: string | null
@@ -57,7 +122,15 @@ export type Database = {
           start_date?: string | null
           suspension_days?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "issued_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
