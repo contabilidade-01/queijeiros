@@ -25,11 +25,24 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("companies")
-        .select("id, name, cnpj, password")
-        .eq("cnpj", cnpj)
-        .single();
+      // Try exact match first, then try formatted CNPJ
+      let query = supabase.from("companies").select("id, name, cnpj, password");
+      const { data: exactData } = await query.eq("cnpj", cnpj).single();
+      
+      let data = exactData;
+      if (!data) {
+        // Format raw digits to XX.XXX.XXX/XXXX-XX
+        const digits = cnpj.replace(/\D/g, "");
+        if (digits.length === 14) {
+          const formatted = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
+          const { data: fmtData } = await supabase
+            .from("companies")
+            .select("id, name, cnpj, password")
+            .eq("cnpj", formatted)
+            .single();
+          data = fmtData;
+        }
+      }
 
       if (error || !data) {
         toast.error("Empresa não encontrada");
