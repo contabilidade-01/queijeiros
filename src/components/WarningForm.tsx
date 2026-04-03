@@ -17,6 +17,7 @@ import { downloadWarningDoc, type WarningData } from "@/lib/generateWarningDoc";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { maskPIS } from "@/lib/masks";
 
 interface Employee {
   id: string;
