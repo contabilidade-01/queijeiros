@@ -245,13 +245,15 @@ export function generateSuspensionDoc(data: SuspensionData) {
           }),
           new Paragraph({ spacing: { after: 200 }, children: [] }),
           // Employee data
-          new Paragraph({
-            spacing: { after: 80 },
-            children: [
-              new TextRun({ text: "PIS: ", font: "Arial", size: 22, bold: true }),
-              new TextRun({ text: data.pis, font: "Arial", size: 22 }),
-            ],
-          }),
+          ...(data.pis ? [
+            new Paragraph({
+              spacing: { after: 80 },
+              children: [
+                new TextRun({ text: "PIS: ", font: "Arial", size: 22, bold: true }),
+                new TextRun({ text: data.pis, font: "Arial", size: 22 }),
+              ],
+            }),
+          ] : []),
           new Paragraph({
             spacing: { after: 200 },
             children: [],
