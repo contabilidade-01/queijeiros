@@ -44,7 +44,7 @@ const LoginPage = () => {
         }
       }
 
-      if (error || !data) {
+      if (!data) {
         toast.error("Empresa não encontrada");
         return;
       }
