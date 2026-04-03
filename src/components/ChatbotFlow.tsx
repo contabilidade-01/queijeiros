@@ -433,8 +433,19 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToWarnings} variant="secondary" className="w-full">
+              <Button onClick={goToThirdSuspension} variant="secondary" className="w-full">
                 {previousSuspensions.length > 0 ? "Continuar" : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "third_suspension" && (
+            <div className="flex gap-2">
+              <Button onClick={() => submitThirdSuspension(true)} variant="destructive" className="flex-1">
+                Sim, é a 3ª
+              </Button>
+              <Button onClick={() => submitThirdSuspension(false)} variant="secondary" className="flex-1">
+                Não
               </Button>
             </div>
           )}
