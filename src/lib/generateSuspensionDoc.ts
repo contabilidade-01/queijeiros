@@ -17,6 +17,7 @@ export interface SuspensionData {
   previousSuspensions: string[];
   recentAbsenceDate: string;
   unjustifiedAbsences: string[];
+  isThirdSuspension?: boolean;
 }
 
 function formatDateBR(date: Date): string {
