@@ -42,6 +42,7 @@ export function SuspensionForm() {
   const [newSuspension, setNewSuspension] = useState("");
   const [newAbsence, setNewAbsence] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isThirdSuspension, setIsThirdSuspension] = useState(false);
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
   const endDate = startDate ? addDays(startDate, suspensionDays - 1) : null;
