@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, X, Download, CalendarIcon, User, Building2, AlertTriangle } from "lucide-react";
+import { Plus, X, Download, CalendarIcon, User, Building2, AlertTriangle, ShieldAlert } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { downloadSuspensionDoc, type SuspensionData } from "@/lib/generateSuspensionDoc";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ export function SuspensionForm() {
   const [newSuspension, setNewSuspension] = useState("");
   const [newAbsence, setNewAbsence] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isThirdSuspension, setIsThirdSuspension] = useState(false);
 
   const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
   const endDate = startDate ? addDays(startDate, suspensionDays - 1) : null;
@@ -97,6 +99,7 @@ export function SuspensionForm() {
       previousSuspensions,
       recentAbsenceDate,
       unjustifiedAbsences,
+      isThirdSuspension,
     };
 
     try {
@@ -287,8 +290,26 @@ export function SuspensionForm() {
                 ))}
               </div>
             )}
-          </div>
-        </CardContent>
+           </div>
+           <Separator />
+           <div className="flex items-start space-x-3 rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+             <Checkbox
+               id="thirdSuspension"
+               checked={isThirdSuspension}
+               onCheckedChange={(checked) => setIsThirdSuspension(checked === true)}
+               className="mt-0.5"
+             />
+             <div className="space-y-1">
+               <Label htmlFor="thirdSuspension" className="text-sm font-medium flex items-center gap-2 cursor-pointer">
+                 <ShieldAlert className="h-4 w-4 text-destructive" />
+                 Esta é a 3ª suspensão do funcionário
+               </Label>
+               <p className="text-xs text-muted-foreground">
+                 Ao marcar, o documento incluirá o aviso: "A próxima falta injustificada pode levar a DEMISSÃO COM JUSTA CAUSA."
+               </p>
+             </div>
+           </div>
+         </CardContent>
       </Card>
 
       {/* Generate Button */}

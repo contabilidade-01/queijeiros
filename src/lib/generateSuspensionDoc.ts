@@ -17,6 +17,7 @@ export interface SuspensionData {
   previousSuspensions: string[];
   recentAbsenceDate: string;
   unjustifiedAbsences: string[];
+  isThirdSuspension?: boolean;
 }
 
 function formatDateBR(date: Date): string {
@@ -114,14 +115,16 @@ export function generateSuspensionDoc(data: SuspensionData) {
     })
   );
 
-  justificationRuns.push(
-    new TextRun({
-      text: "ATENÇÃO: A próxima falta injustificada pode levar a DEMISSÃO COM JUSTA CAUSA.",
-      font: "Arial",
-      size: 22,
-      bold: true,
-    })
-  );
+  if (data.isThirdSuspension) {
+    justificationRuns.push(
+      new TextRun({
+        text: "ATENÇÃO: A próxima falta injustificada pode levar a DEMISSÃO COM JUSTA CAUSA.",
+        font: "Arial",
+        size: 22,
+        bold: true,
+      })
+    );
+  }
 
   justificationRuns.push(
     new TextRun({

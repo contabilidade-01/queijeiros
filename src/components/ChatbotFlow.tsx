@@ -24,6 +24,7 @@ type Step =
   | "recent_absence"
   | "previous_warnings"
   | "previous_suspensions"
+  | "third_suspension"
   | "unjustified_absences"
   | "pis"
   | "confirm";
@@ -59,6 +60,7 @@ export function ChatbotFlow() {
   const [unjustifiedAbsences, setUnjustifiedAbsences] = useState<string[]>([]);
   const [pisInput, setPisInput] = useState("");
   const [tempInput, setTempInput] = useState("");
+  const [isThirdSuspension, setIsThirdSuspension] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -141,9 +143,16 @@ export function ChatbotFlow() {
     setStep("previous_suspensions");
   };
 
-  const goToWarnings = () => {
+  const goToThirdSuspension = () => {
     if (previousSuspensions.length > 0) addUserMsg(previousSuspensions.join(", "));
     else addUserMsg("(nenhuma)");
+    addBotMsg("Esta é a 3ª suspensão do funcionário? Se sim, o documento incluirá o aviso de possível demissão por justa causa.");
+    setStep("third_suspension");
+  };
+
+  const submitThirdSuspension = (value: boolean) => {
+    setIsThirdSuspension(value);
+    addUserMsg(value ? "Sim, é a 3ª suspensão" : "Não");
     addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
     setStep("previous_warnings");
   };
@@ -203,6 +212,7 @@ export function ChatbotFlow() {
           previousSuspensions,
           recentAbsenceDate: recentAbsence,
           unjustifiedAbsences,
+          isThirdSuspension,
         };
         await downloadSuspensionDoc(data);
         const endDate = addDays(startDate, days - 1);
@@ -423,8 +433,19 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToWarnings} variant="secondary" className="w-full">
+              <Button onClick={goToThirdSuspension} variant="secondary" className="w-full">
                 {previousSuspensions.length > 0 ? "Continuar" : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "third_suspension" && (
+            <div className="flex gap-2">
+              <Button onClick={() => submitThirdSuspension(true)} variant="destructive" className="flex-1">
+                Sim, é a 3ª
+              </Button>
+              <Button onClick={() => submitThirdSuspension(false)} variant="secondary" className="flex-1">
+                Não
               </Button>
             </div>
           )}
