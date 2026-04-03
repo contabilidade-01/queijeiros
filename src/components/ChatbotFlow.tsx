@@ -1,0 +1,522 @@
+import { useState, useEffect, useRef } from "react";
+import { Plus, X, Download, CalendarIcon, Check } from "lucide-react";
+import { format, addDays } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { downloadSuspensionDoc, type SuspensionData } from "@/lib/generateSuspensionDoc";
+import { downloadWarningDoc, type WarningData } from "@/lib/generateWarningDoc";
+import { toast } from "sonner";
+
+type Step =
+  | "doc_type"
+  | "employee"
+  | "days"
+  | "start_date"
+  | "reason"
+  | "recent_absence"
+  | "previous_warnings"
+  | "previous_suspensions"
+  | "unjustified_absences"
+  | "pis"
+  | "confirm";
+
+interface Message {
+  from: "bot" | "user";
+  text: string;
+}
+
+interface Employee {
+  id: string;
+  name: string;
+  cpf: string;
+  pis: string | null;
+}
+
+export function ChatbotFlow() {
+  const { company } = useAuth();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [step, setStep] = useState<Step>("doc_type");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+
+  // Form state
+  const [docType, setDocType] = useState<"suspension" | "warning" | null>(null);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const [days, setDays] = useState(1);
+  const [startDate, setStartDate] = useState<Date>();
+  const [reason, setReason] = useState("");
+  const [recentAbsence, setRecentAbsence] = useState("");
+  const [previousWarnings, setPreviousWarnings] = useState<string[]>([]);
+  const [previousSuspensions, setPreviousSuspensions] = useState<string[]>([]);
+  const [unjustifiedAbsences, setUnjustifiedAbsences] = useState<string[]>([]);
+  const [pisInput, setPisInput] = useState("");
+  const [tempInput, setTempInput] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    if (company) {
+      supabase
+        .from("employees")
+        .select("id, name, cpf, pis")
+        .eq("company_id", company.id)
+        .eq("active", true)
+        .order("name")
+        .then(({ data }) => {
+          if (data) setEmployees(data);
+        });
+    }
+  }, [company]);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, step]);
+
+  const addBotMsg = (text: string) => setMessages((m) => [...m, { from: "bot", text }]);
+  const addUserMsg = (text: string) => setMessages((m) => [...m, { from: "user", text }]);
+
+  useEffect(() => {
+    addBotMsg("Olá! Vou te ajudar a gerar um documento. Qual tipo você deseja?");
+  }, []);
+
+  const selectDocType = (type: "suspension" | "warning") => {
+    setDocType(type);
+    addUserMsg(type === "suspension" ? "Suspensão" : "Advertência");
+    addBotMsg("Qual funcionário?");
+    setStep("employee");
+  };
+
+  const selectEmployee = (emp: Employee) => {
+    setSelectedEmployee(emp);
+    setPisInput(emp.pis || "");
+    addUserMsg(emp.name);
+
+    if (docType === "suspension") {
+      addBotMsg("Quantos dias de suspensão?");
+      setStep("days");
+    } else {
+      addBotMsg("Qual a data da advertência?");
+      setStep("start_date");
+    }
+  };
+
+  const submitDays = () => {
+    addUserMsg(`${days} dia${days > 1 ? "s" : ""}`);
+    addBotMsg("Qual a data de início da suspensão?");
+    setStep("start_date");
+  };
+
+  const submitDate = (date: Date) => {
+    setStartDate(date);
+    addUserMsg(format(date, "dd/MM/yyyy", { locale: ptBR }));
+    addBotMsg("Descreva o motivo:");
+    setStep("reason");
+  };
+
+  const submitReason = () => {
+    if (!reason.trim()) return;
+    addUserMsg(reason);
+
+    if (docType === "suspension") {
+      addBotMsg("Data da falta mais recente? (deixe vazio para pular)");
+      setStep("recent_absence");
+    } else {
+      addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+      setStep("previous_warnings");
+    }
+  };
+
+  const submitRecentAbsence = () => {
+    if (recentAbsence) addUserMsg(recentAbsence);
+    else addUserMsg("(pulado)");
+    addBotMsg("Houve suspensões anteriores? Adicione ou clique em Pular.");
+    setStep("previous_suspensions");
+  };
+
+  const goToWarnings = () => {
+    if (previousSuspensions.length > 0) addUserMsg(previousSuspensions.join(", "));
+    else addUserMsg("(nenhuma)");
+    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+    setStep("previous_warnings");
+  };
+
+  const goToAbsences = () => {
+    if (previousWarnings.length > 0) addUserMsg(previousWarnings.join(", "));
+    else addUserMsg("(nenhuma)");
+    addBotMsg("Faltas sem justificativa? Adicione ou clique em Pular.");
+    setStep("unjustified_absences");
+  };
+
+  const goToPis = () => {
+    if (unjustifiedAbsences.length > 0) addUserMsg(unjustifiedAbsences.join(", "));
+    else addUserMsg("(nenhuma)");
+    addBotMsg(`PIS do funcionário${pisInput ? ` (atual: ${pisInput})` : ""}. Altere ou clique em Pular.`);
+    setStep("pis");
+  };
+
+  const goToConfirm = () => {
+    if (pisInput) addUserMsg(`PIS: ${pisInput}`);
+    else addUserMsg("(sem PIS)");
+    setStep("confirm");
+
+    const endDate = startDate && docType === "suspension" ? addDays(startDate, days - 1) : null;
+    const returnDate = endDate ? addDays(endDate, 1) : null;
+
+    let summary = `📋 **Resumo:**\n`;
+    summary += `• Tipo: ${docType === "suspension" ? "Suspensão" : "Advertência"}\n`;
+    summary += `• Funcionário: ${selectedEmployee?.name}\n`;
+    summary += `• CPF: ${selectedEmployee?.cpf}\n`;
+    if (pisInput) summary += `• PIS: ${pisInput}\n`;
+    if (startDate) summary += `• Data: ${format(startDate, "dd/MM/yyyy")}\n`;
+    if (docType === "suspension") {
+      summary += `• Dias: ${days}\n`;
+      if (returnDate) summary += `• Retorno: ${format(returnDate, "dd/MM/yyyy")}\n`;
+    }
+    summary += `• Empresa: ${company?.name}\n`;
+
+    addBotMsg(summary + "\nConfirma a geração do documento?");
+  };
+
+  const handleGenerate = async () => {
+    if (!startDate || !selectedEmployee || !company) return;
+    setIsGenerating(true);
+
+    try {
+      if (docType === "suspension") {
+        const data: SuspensionData = {
+          employeeName: selectedEmployee.name,
+          pis: pisInput,
+          cpf: selectedEmployee.cpf,
+          companyName: company.name,
+          cnpj: company.cnpj,
+          startDate,
+          suspensionDays: days,
+          previousWarnings,
+          previousSuspensions,
+          recentAbsenceDate: recentAbsence,
+          unjustifiedAbsences,
+        };
+        await downloadSuspensionDoc(data);
+        const endDate = addDays(startDate, days - 1);
+        const returnDate = addDays(endDate, 1);
+        await supabase.from("issued_documents").insert({
+          document_type: "suspension",
+          employee_name: selectedEmployee.name,
+          employee_cpf: selectedEmployee.cpf,
+          employee_pis: pisInput || null,
+          company_name: company.name,
+          company_cnpj: company.cnpj,
+          company_id: company.id,
+          start_date: format(startDate, "yyyy-MM-dd"),
+          suspension_days: days,
+          return_date: format(returnDate, "yyyy-MM-dd"),
+          description: `Suspensão de ${days} dia(s)`,
+        });
+      } else {
+        const data: WarningData = {
+          employeeName: selectedEmployee.name,
+          pis: pisInput,
+          cpf: selectedEmployee.cpf,
+          companyName: company.name,
+          cnpj: company.cnpj,
+          warningDate: startDate,
+          reason,
+          previousWarnings,
+          unjustifiedAbsences,
+        };
+        await downloadWarningDoc(data);
+        await supabase.from("issued_documents").insert({
+          document_type: "warning",
+          employee_name: selectedEmployee.name,
+          employee_cpf: selectedEmployee.cpf,
+          employee_pis: pisInput || null,
+          company_name: company.name,
+          company_cnpj: company.cnpj,
+          company_id: company.id,
+          start_date: format(startDate, "yyyy-MM-dd"),
+          description: reason.substring(0, 200),
+        });
+      }
+
+      addUserMsg("✅ Confirmar");
+      addBotMsg("✅ Documento gerado com sucesso! O download foi iniciado.");
+      toast.success("Documento gerado!");
+    } catch {
+      toast.error("Erro ao gerar documento");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const addListItem = (
+    list: string[],
+    setList: (v: string[]) => void
+  ) => {
+    if (tempInput.trim()) {
+      setList([...list, tempInput.trim()]);
+      setTempInput("");
+    }
+  };
+
+  const removeListItem = (list: string[], setList: (v: string[]) => void, index: number) => {
+    setList(list.filter((_, i) => i !== index));
+  };
+
+  const filteredEmployees = employees.filter((e) =>
+    e.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-64px)]">
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+        {messages.map((msg, i) => (
+          <div key={i} className={cn("flex", msg.from === "user" ? "justify-end" : "justify-start")}>
+            <div
+              className={cn(
+                "max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-line",
+                msg.from === "user"
+                  ? "bg-primary text-primary-foreground rounded-br-md"
+                  : "bg-muted text-foreground rounded-bl-md"
+              )}
+            >
+              {msg.text}
+            </div>
+          </div>
+        ))}
+
+        {/* Input area based on step */}
+        <div className="pt-2">
+          {step === "doc_type" && (
+            <div className="flex gap-2">
+              <Button onClick={() => selectDocType("suspension")} className="flex-1">
+                Suspensão
+              </Button>
+              <Button onClick={() => selectDocType("warning")} variant="secondary" className="flex-1">
+                Advertência
+              </Button>
+            </div>
+          )}
+
+          {step === "employee" && (
+            <div className="space-y-2">
+              <Input
+                placeholder="Buscar funcionário..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {filteredEmployees.map((emp) => (
+                  <Button
+                    key={emp.id}
+                    variant="outline"
+                    className="w-full justify-start text-left h-auto py-2"
+                    onClick={() => selectEmployee(emp)}
+                  >
+                    <div>
+                      <div className="font-medium text-sm">{emp.name}</div>
+                      <div className="text-xs text-muted-foreground">CPF: {emp.cpf}</div>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {step === "days" && (
+            <div className="flex gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={30}
+                value={days}
+                onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 1))}
+                className="flex-1"
+              />
+              <Button onClick={submitDays}>
+                <Check className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {step === "start_date" && (
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className={cn("w-full justify-start", !startDate && "text-muted-foreground")}>
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(d) => d && submitDate(d)}
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
+          {step === "reason" && (
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Descreva o motivo..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="min-h-[80px]"
+              />
+              <Button onClick={submitReason} disabled={!reason.trim()} className="w-full">
+                Enviar
+              </Button>
+            </div>
+          )}
+
+          {step === "recent_absence" && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="Ex: 29 de maio de 2025"
+                value={recentAbsence}
+                onChange={(e) => setRecentAbsence(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={submitRecentAbsence}>
+                {recentAbsence ? <Check className="h-4 w-4" /> : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "previous_suspensions" && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: 04/03/2025"
+                  value={tempInput}
+                  onChange={(e) => setTempInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addListItem(previousSuspensions, setPreviousSuspensions)}
+                  className="flex-1"
+                />
+                <Button size="icon" variant="outline" onClick={() => addListItem(previousSuspensions, setPreviousSuspensions)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {previousSuspensions.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {previousSuspensions.map((item, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                      {item}
+                      <button onClick={() => removeListItem(previousSuspensions, setPreviousSuspensions, i)} className="ml-1 rounded-full hover:bg-muted p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Button onClick={goToWarnings} variant="secondary" className="w-full">
+                {previousSuspensions.length > 0 ? "Continuar" : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "previous_warnings" && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: Advertência verbal em 01/02/2025"
+                  value={tempInput}
+                  onChange={(e) => setTempInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addListItem(previousWarnings, setPreviousWarnings)}
+                  className="flex-1"
+                />
+                <Button size="icon" variant="outline" onClick={() => addListItem(previousWarnings, setPreviousWarnings)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {previousWarnings.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {previousWarnings.map((item, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                      {item}
+                      <button onClick={() => removeListItem(previousWarnings, setPreviousWarnings, i)} className="ml-1 rounded-full hover:bg-muted p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Button onClick={goToAbsences} variant="secondary" className="w-full">
+                {previousWarnings.length > 0 ? "Continuar" : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "unjustified_absences" && (
+            <div className="space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ex: 09/11/2024"
+                  value={tempInput}
+                  onChange={(e) => setTempInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && addListItem(unjustifiedAbsences, setUnjustifiedAbsences)}
+                  className="flex-1"
+                />
+                <Button size="icon" variant="outline" onClick={() => addListItem(unjustifiedAbsences, setUnjustifiedAbsences)}>
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              {unjustifiedAbsences.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {unjustifiedAbsences.map((item, i) => (
+                    <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                      {item}
+                      <button onClick={() => removeListItem(unjustifiedAbsences, setUnjustifiedAbsences, i)} className="ml-1 rounded-full hover:bg-muted p-0.5">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Button onClick={goToPis} variant="secondary" className="w-full">
+                {unjustifiedAbsences.length > 0 ? "Continuar" : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "pis" && (
+            <div className="flex gap-2">
+              <Input
+                placeholder="000.00000.00-0"
+                value={pisInput}
+                onChange={(e) => setPisInput(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={goToConfirm}>
+                {pisInput ? <Check className="h-4 w-4" /> : "Pular"}
+              </Button>
+            </div>
+          )}
+
+          {step === "confirm" && (
+            <div className="flex gap-2">
+              <Button onClick={handleGenerate} disabled={isGenerating} className="flex-1 gap-2">
+                <Download className="h-4 w-4" />
+                {isGenerating ? "Gerando..." : "Gerar Documento"}
+              </Button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
