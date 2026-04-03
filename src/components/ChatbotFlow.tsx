@@ -24,6 +24,7 @@ type Step =
   | "recent_absence"
   | "previous_warnings"
   | "previous_suspensions"
+  | "third_suspension"
   | "unjustified_absences"
   | "pis"
   | "confirm";
