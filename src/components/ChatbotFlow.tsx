@@ -212,6 +212,7 @@ export function ChatbotFlow() {
           previousSuspensions,
           recentAbsenceDate: recentAbsence,
           unjustifiedAbsences,
+          isThirdSuspension,
         };
         await downloadSuspensionDoc(data);
         const endDate = addDays(startDate, days - 1);
