@@ -87,7 +87,7 @@ const LoginPage = () => {
                   id="cnpj"
                   placeholder="00.000.000/0000-00"
                   value={cnpj}
-                  onChange={(e) => setCnpj(e.target.value)}
+                  onChange={(e) => setCnpj(maskCNPJ(e.target.value))}
                   className="pl-10"
                 />
               </div>

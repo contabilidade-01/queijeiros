@@ -137,7 +137,7 @@ const EmployeesPage = () => {
                 </div>
                 <div>
                   <Label>PIS <span className="text-xs text-muted-foreground">(opcional)</span></Label>
-                  <Input placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
+                  <Input placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(maskPIS(e.target.value))} className="mt-1" />
                 </div>
               </div>
               <div className="flex gap-2">

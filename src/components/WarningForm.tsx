@@ -153,7 +153,7 @@ export function WarningForm() {
           )}
           <div>
             <Label htmlFor="w-pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-            <Input id="w-pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
+            <Input id="w-pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(maskPIS(e.target.value))} className="mt-1" />
           </div>
         </CardContent>
       </Card>
