@@ -14,7 +14,51 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      issued_documents: {
+        Row: {
+          company_cnpj: string
+          company_name: string
+          created_at: string
+          description: string | null
+          document_type: string
+          employee_cpf: string
+          employee_name: string
+          employee_pis: string | null
+          id: string
+          return_date: string | null
+          start_date: string | null
+          suspension_days: number | null
+        }
+        Insert: {
+          company_cnpj: string
+          company_name: string
+          created_at?: string
+          description?: string | null
+          document_type: string
+          employee_cpf: string
+          employee_name: string
+          employee_pis?: string | null
+          id?: string
+          return_date?: string | null
+          start_date?: string | null
+          suspension_days?: number | null
+        }
+        Update: {
+          company_cnpj?: string
+          company_name?: string
+          created_at?: string
+          description?: string | null
+          document_type?: string
+          employee_cpf?: string
+          employee_name?: string
+          employee_pis?: string | null
+          id?: string
+          return_date?: string | null
+          start_date?: string | null
+          suspension_days?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
