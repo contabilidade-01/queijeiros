@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, Download, CalendarIcon, User, Building2, AlertTriangle } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -10,17 +10,25 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { downloadSuspensionDoc, type SuspensionData } from "@/lib/generateSuspensionDoc";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
+interface Employee {
+  id: string;
+  name: string;
+  cpf: string;
+  pis: string | null;
+}
+
 export function SuspensionForm() {
-  const [employeeName, setEmployeeName] = useState("");
+  const { company } = useAuth();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState("");
   const [pis, setPis] = useState("");
-  const [cpf, setCpf] = useState("");
-  const [companyName, setCompanyName] = useState("RESTAURANTE DO QUEIJEIRO 3 LIMITADA");
-  const [cnpj, setCnpj] = useState("52.191.264/0001-73");
   const [startDate, setStartDate] = useState<Date>();
   const [suspensionDays, setSuspensionDays] = useState(1);
   const [recentAbsenceDate, setRecentAbsenceDate] = useState("");
@@ -34,8 +42,29 @@ export function SuspensionForm() {
   const [newAbsence, setNewAbsence] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
+  const selectedEmployee = employees.find((e) => e.id === selectedEmployeeId);
   const endDate = startDate ? addDays(startDate, suspensionDays - 1) : null;
   const returnDate = endDate ? addDays(endDate, 1) : null;
+
+  useEffect(() => {
+    if (company) {
+      supabase
+        .from("employees")
+        .select("id, name, cpf, pis")
+        .eq("company_id", company.id)
+        .eq("active", true)
+        .order("name")
+        .then(({ data }) => {
+          if (data) setEmployees(data);
+        });
+    }
+  }, [company]);
+
+  useEffect(() => {
+    if (selectedEmployee) {
+      setPis(selectedEmployee.pis || "");
+    }
+  }, [selectedEmployee]);
 
   const addItem = (list: string[], setList: (v: string[]) => void, value: string, setValue: (v: string) => void) => {
     if (value.trim()) {
@@ -49,30 +78,38 @@ export function SuspensionForm() {
   };
 
   const handleGenerate = async () => {
-    if (!employeeName || !startDate || !cpf) {
-      toast.error("Preencha os campos obrigatórios: Nome, Data de início e CPF");
+    if (!selectedEmployee || !startDate) {
+      toast.error("Selecione o funcionário e a data de início");
       return;
     }
 
     setIsGenerating(true);
 
     const data: SuspensionData = {
-      employeeName, pis, cpf, companyName, cnpj,
-      startDate, suspensionDays, previousWarnings,
-      previousSuspensions, recentAbsenceDate, unjustifiedAbsences,
+      employeeName: selectedEmployee.name,
+      pis,
+      cpf: selectedEmployee.cpf,
+      companyName: company?.name || "",
+      cnpj: company?.cnpj || "",
+      startDate,
+      suspensionDays,
+      previousWarnings,
+      previousSuspensions,
+      recentAbsenceDate,
+      unjustifiedAbsences,
     };
 
     try {
       await downloadSuspensionDoc(data);
 
-      // Save to database
       await supabase.from("issued_documents").insert({
         document_type: "suspension",
-        employee_name: employeeName,
-        employee_cpf: cpf,
+        employee_name: selectedEmployee.name,
+        employee_cpf: selectedEmployee.cpf,
         employee_pis: pis || null,
-        company_name: companyName,
-        company_cnpj: cnpj,
+        company_name: company?.name || "",
+        company_cnpj: company?.cnpj || "",
+        company_id: company?.id,
         start_date: format(startDate, "yyyy-MM-dd"),
         suspension_days: suspensionDays,
         return_date: returnDate ? format(returnDate, "yyyy-MM-dd") : null,
@@ -80,7 +117,7 @@ export function SuspensionForm() {
       });
 
       toast.success("Documento gerado e salvo no histórico!");
-    } catch (error) {
+    } catch {
       toast.error("Erro ao gerar documento");
     } finally {
       setIsGenerating(false);
@@ -91,48 +128,55 @@ export function SuspensionForm() {
 
   return (
     <div className="space-y-4">
-      {/* Employee Info */}
+      {/* Employee Select */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <User className="h-4 w-4 text-primary" />
-            Dados do Funcionário
+            Funcionário
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="name">Nome Completo *</Label>
-            <Input id="name" placeholder="Ex: João da Silva" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} className="mt-1" />
+            <Label>Selecionar Funcionário *</Label>
+            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+              <SelectTrigger className="mt-1">
+                <SelectValue placeholder="Escolha o funcionário" />
+              </SelectTrigger>
+              <SelectContent>
+                {employees.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id}>
+                    {emp.name} — {emp.cpf}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label htmlFor="cpf">CPF *</Label>
-              <Input id="cpf" placeholder="000.000.000-00" value={cpf} onChange={(e) => setCpf(e.target.value)} className="mt-1" />
+          {selectedEmployee && (
+            <div className="rounded-lg bg-muted p-3 space-y-1">
+              <p className="text-sm"><span className="text-muted-foreground">CPF:</span> {selectedEmployee.cpf}</p>
+              {selectedEmployee.pis && <p className="text-sm"><span className="text-muted-foreground">PIS:</span> {selectedEmployee.pis}</p>}
             </div>
-            <div>
-              <Label htmlFor="pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
-              <Input id="pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
-            </div>
+          )}
+          <div>
+            <Label htmlFor="pis">PIS <span className="text-muted-foreground text-xs">(opcional)</span></Label>
+            <Input id="pis" placeholder="000.00000.00-0" value={pis} onChange={(e) => setPis(e.target.value)} className="mt-1" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Company Info */}
+      {/* Company Info (read-only) */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
             <Building2 className="h-4 w-4 text-primary" />
-            Dados da Empresa
+            Empresa
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="company">Razão Social</Label>
-            <Input id="company" value={companyName} onChange={(e) => setCompanyName(e.target.value)} className="mt-1" />
-          </div>
-          <div>
-            <Label htmlFor="cnpj">CNPJ</Label>
-            <Input id="cnpj" value={cnpj} onChange={(e) => setCnpj(e.target.value)} className="mt-1" />
+        <CardContent>
+          <div className="rounded-lg bg-muted p-3 space-y-1">
+            <p className="text-sm font-medium">{company?.name}</p>
+            <p className="text-xs text-muted-foreground">CNPJ: {company?.cnpj}</p>
           </div>
         </CardContent>
       </Card>
@@ -191,7 +235,7 @@ export function SuspensionForm() {
         </CardContent>
       </Card>
 
-      {/* Warnings & Suspensions */}
+      {/* History */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-base">
