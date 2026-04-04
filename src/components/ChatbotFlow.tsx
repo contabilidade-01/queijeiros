@@ -200,8 +200,8 @@ export function ChatbotFlow() {
   const goToAbsences = () => {
     if (previousWarnings.length > 0) addUserMsg(previousWarnings.join(", "));
     else addUserMsg("(nenhuma)");
-    addBotMsg("Faltas sem justificativa? Adicione ou clique em Pular.");
-    setStep("unjustified_absences");
+    addBotMsg("Houve faltas sem justificativa?");
+    setStep("unjustified_absences_yn");
   };
 
   const goToPis = () => {
