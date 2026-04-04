@@ -24,9 +24,12 @@ type Step =
   | "reason_custom"
   | "reason_falta_date"
   | "recent_absence"
+  | "previous_warnings_yn"
   | "previous_warnings"
+  | "previous_suspensions_yn"
   | "previous_suspensions"
   | "third_suspension"
+  | "unjustified_absences_yn"
   | "unjustified_absences"
   | "pis"
   | "confirm";
@@ -149,15 +152,15 @@ export function ChatbotFlow() {
     const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
     addUserMsg(dateStr);
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
   };
 
   const submitCustomReason = () => {
     if (!reason.trim()) return;
     addUserMsg(reason);
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
   };
 
   const submitReason = () => {
@@ -168,21 +171,20 @@ export function ChatbotFlow() {
       addBotMsg("Data da falta mais recente? (deixe vazio para pular)");
       setStep("recent_absence");
     } else {
-      addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-      setStep("previous_warnings");
+      addBotMsg("Houve advertências anteriores?");
+      setStep("previous_warnings_yn");
     }
   };
 
   const submitRecentAbsence = () => {
     if (recentAbsence) addUserMsg(recentAbsence);
     else addUserMsg("(pulado)");
-    addBotMsg("Houve suspensões anteriores? Adicione ou clique em Pular.");
-    setStep("previous_suspensions");
+    addBotMsg("Houve suspensões anteriores?");
+    setStep("previous_suspensions_yn");
   };
 
   const goToThirdSuspension = () => {
     if (previousSuspensions.length > 0) addUserMsg(previousSuspensions.join(", "));
-    else addUserMsg("(nenhuma)");
     addBotMsg("Esta é a 3ª suspensão do funcionário? Se sim, o documento incluirá o aviso de possível demissão por justa causa.");
     setStep("third_suspension");
   };
@@ -190,20 +192,51 @@ export function ChatbotFlow() {
   const submitThirdSuspension = (value: boolean) => {
     setIsThirdSuspension(value);
     addUserMsg(value ? "Sim, é a 3ª suspensão" : "Não");
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
+  };
+
+  const answerPreviousWarningsYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as advertências anteriores:");
+      setStep("previous_warnings");
+    } else {
+      addUserMsg("Não");
+      goToAbsences();
+    }
+  };
+
+  const answerPreviousSuspensionsYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as suspensões anteriores:");
+      setStep("previous_suspensions");
+    } else {
+      addUserMsg("Não");
+      goToThirdSuspension();
+    }
+  };
+
+  const answerUnjustifiedAbsencesYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as datas das faltas:");
+      setStep("unjustified_absences");
+    } else {
+      addUserMsg("Não");
+      goToPis();
+    }
   };
 
   const goToAbsences = () => {
     if (previousWarnings.length > 0) addUserMsg(previousWarnings.join(", "));
-    else addUserMsg("(nenhuma)");
-    addBotMsg("Faltas sem justificativa? Adicione ou clique em Pular.");
-    setStep("unjustified_absences");
+    addBotMsg("Houve faltas sem justificativa?");
+    setStep("unjustified_absences_yn");
   };
 
   const goToPis = () => {
     if (unjustifiedAbsences.length > 0) addUserMsg(unjustifiedAbsences.join(", "));
-    else addUserMsg("(nenhuma)");
     addBotMsg(`PIS do funcionário${pisInput ? ` (atual: ${pisInput})` : ""}. Altere ou clique em Pular.`);
     setStep("pis");
   };
@@ -490,6 +523,13 @@ export function ChatbotFlow() {
             </div>
           )}
 
+          {step === "previous_suspensions_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerPreviousSuspensionsYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerPreviousSuspensionsYn(false)} variant="secondary" className="flex-1">Não</Button>
+            </div>
+          )}
+
           {step === "previous_suspensions" && (
             <div className="space-y-2">
               <div className="flex gap-2">
@@ -533,11 +573,18 @@ export function ChatbotFlow() {
             </div>
           )}
 
+          {step === "previous_warnings_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerPreviousWarningsYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerPreviousWarningsYn(false)} variant="secondary" className="flex-1">Não</Button>
+            </div>
+          )}
+
           {step === "previous_warnings" && (
             <div className="space-y-2">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Ex: Advertência verbal em 01/02/2025"
+                  placeholder="Ex: 01/02/2025"
                   value={tempInput}
                   onChange={(e) => setTempInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addListItem(previousWarnings, setPreviousWarnings)}
@@ -562,6 +609,13 @@ export function ChatbotFlow() {
               <Button onClick={goToAbsences} variant={previousWarnings.length > 0 ? "default" : "secondary"} className="w-full">
                 {previousWarnings.length > 0 ? "Continuar" : "Pular"}
               </Button>
+            </div>
+          )}
+
+          {step === "unjustified_absences_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerUnjustifiedAbsencesYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerUnjustifiedAbsencesYn(false)} variant="secondary" className="flex-1">Não</Button>
             </div>
           )}
 
