@@ -68,6 +68,7 @@ export function ChatbotFlow() {
   const [isThirdSuspension, setIsThirdSuspension] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [faltaDates, setFaltaDates] = useState<Date[]>([]);
 
   useEffect(() => {
     if (company) {
