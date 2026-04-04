@@ -185,7 +185,6 @@ export function ChatbotFlow() {
 
   const goToThirdSuspension = () => {
     if (previousSuspensions.length > 0) addUserMsg(previousSuspensions.join(", "));
-    else addUserMsg("(nenhuma)");
     addBotMsg("Esta é a 3ª suspensão do funcionário? Se sim, o documento incluirá o aviso de possível demissão por justa causa.");
     setStep("third_suspension");
   };
