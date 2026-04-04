@@ -523,6 +523,13 @@ export function ChatbotFlow() {
             </div>
           )}
 
+          {step === "previous_suspensions_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerPreviousSuspensionsYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerPreviousSuspensionsYn(false)} variant="secondary" className="flex-1">Não</Button>
+            </div>
+          )}
+
           {step === "previous_suspensions" && (
             <div className="space-y-2">
               <div className="flex gap-2">
