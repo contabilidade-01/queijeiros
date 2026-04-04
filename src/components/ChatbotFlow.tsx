@@ -573,11 +573,18 @@ export function ChatbotFlow() {
             </div>
           )}
 
+          {step === "previous_warnings_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerPreviousWarningsYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerPreviousWarningsYn(false)} variant="secondary" className="flex-1">Não</Button>
+            </div>
+          )}
+
           {step === "previous_warnings" && (
             <div className="space-y-2">
               <div className="flex gap-2">
                 <Input
-                  placeholder="Ex: Advertência verbal em 01/02/2025"
+                  placeholder="Ex: 01/02/2025"
                   value={tempInput}
                   onChange={(e) => setTempInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && addListItem(previousWarnings, setPreviousWarnings)}
@@ -602,6 +609,13 @@ export function ChatbotFlow() {
               <Button onClick={goToAbsences} variant={previousWarnings.length > 0 ? "default" : "secondary"} className="w-full">
                 {previousWarnings.length > 0 ? "Continuar" : "Pular"}
               </Button>
+            </div>
+          )}
+
+          {step === "unjustified_absences_yn" && (
+            <div className="flex gap-2">
+              <Button onClick={() => answerUnjustifiedAbsencesYn(true)} className="flex-1">Sim</Button>
+              <Button onClick={() => answerUnjustifiedAbsencesYn(false)} variant="secondary" className="flex-1">Não</Button>
             </div>
           )}
 
