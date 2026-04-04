@@ -33,6 +33,8 @@ export function WarningForm() {
   const [pis, setPis] = useState("");
   const [warningDate, setWarningDate] = useState<Date>();
   const [reason, setReason] = useState("");
+  const [reasonType, setReasonType] = useState<"falta" | "outro" | "">("");
+  const [faltaDate, setFaltaDate] = useState<Date>();
 
   const [previousWarnings, setPreviousWarnings] = useState<string[]>([]);
   const [unjustifiedAbsences, setUnjustifiedAbsences] = useState<string[]>([]);
