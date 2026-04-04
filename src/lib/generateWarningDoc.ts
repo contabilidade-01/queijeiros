@@ -27,29 +27,28 @@ function formatDateFull(date: Date): string {
 
 function lineSeparator(): Paragraph {
   return new Paragraph({
-    spacing: { before: 100, after: 100 },
-    border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 4 } },
+    spacing: { before: 40, after: 40 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 2 } },
     children: [],
   });
 }
+
+const F = 20; // font size (10pt)
+const FS = 18; // font size small (9pt)
+const FT = 24; // font size title (12pt)
 
 export function generateWarningDoc(data: WarningData) {
   const reasonRuns: TextRun[] = [];
 
   reasonRuns.push(
-    new TextRun({
-      text: data.reason,
-      font: "Arial",
-      size: 22,
-    })
+    new TextRun({ text: data.reason, font: "Arial", size: F })
   );
 
   if (data.previousWarnings.length > 0) {
     reasonRuns.push(
       new TextRun({
         text: ` Registra-se que V.S. já recebeu advertências anteriores: ${data.previousWarnings.join(", ")}.`,
-        font: "Arial",
-        size: 22,
+        font: "Arial", size: F,
       })
     );
   }
@@ -58,8 +57,7 @@ export function generateWarningDoc(data: WarningData) {
     reasonRuns.push(
       new TextRun({
         text: ` Constam ainda faltas sem justificativa nos dias: ${data.unjustifiedAbsences.join(", ")}.`,
-        font: "Arial",
-        size: 22,
+        font: "Arial", size: F,
       })
     );
   }
@@ -67,16 +65,14 @@ export function generateWarningDoc(data: WarningData) {
   reasonRuns.push(
     new TextRun({
       text: " A presente advertência é aplicada com fundamento no artigo 2º da Consolidação das Leis do Trabalho (CLT), que confere ao empregador o poder diretivo e disciplinar sobre seus empregados.",
-      font: "Arial",
-      size: 22,
+      font: "Arial", size: F,
     })
   );
 
   reasonRuns.push(
     new TextRun({
       text: " Ressalta-se que, nos termos do artigo 482 da CLT, a reiteração deste tipo de conduta poderá acarretar penalidades mais severas, incluindo suspensão disciplinar e, em última instância, a rescisão do contrato de trabalho por justa causa.",
-      font: "Arial",
-      size: 22,
+      font: "Arial", size: F,
     })
   );
 
@@ -86,211 +82,155 @@ export function generateWarningDoc(data: WarningData) {
         properties: {
           page: {
             size: { width: 11906, height: 16838 },
-            margin: { top: 1800, right: 1440, bottom: 1440, left: 1440 },
+            margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 },
           },
         },
         children: [
           // Company header
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
+            spacing: { after: 40 },
             children: [
-              new TextRun({
-                text: data.companyName.toUpperCase(),
-                font: "Arial",
-                size: 24,
-                bold: true,
-              }),
+              new TextRun({ text: data.companyName.toUpperCase(), font: "Arial", size: FT, bold: true }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
+            spacing: { after: 120 },
             children: [
-              new TextRun({
-                text: `CNPJ: ${data.cnpj}`,
-                font: "Arial",
-                size: 18,
-                color: "666666",
-              }),
+              new TextRun({ text: `CNPJ: ${data.cnpj}`, font: "Arial", size: FS, color: "666666" }),
             ],
           }),
           lineSeparator(),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
           // Title
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
+            spacing: { before: 120, after: 120 },
             children: [
-              new TextRun({
-                text: "TERMO DE ADVERTÊNCIA DISCIPLINAR",
-                font: "Arial",
-                size: 28,
-                bold: true,
-              }),
+              new TextRun({ text: "TERMO DE ADVERTÊNCIA DISCIPLINAR", font: "Arial", size: FT, bold: true }),
             ],
           }),
           // Date
           new Paragraph({
             alignment: AlignmentType.RIGHT,
-            spacing: { after: 300 },
+            spacing: { after: 120 },
             children: [
-              new TextRun({
-                text: formatDateFull(data.warningDate),
-                font: "Arial",
-                size: 20,
-                italics: true,
-              }),
+              new TextRun({ text: formatDateFull(data.warningDate), font: "Arial", size: FS, italics: true }),
             ],
           }),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
           // Intro
           new Paragraph({
-            spacing: { after: 200 },
+            spacing: { after: 80 },
             children: [
-              new TextRun({
-                text: "Pelo presente instrumento, fica o(a) empregado(a) abaixo identificado(a) formalmente advertido(a):",
-                font: "Arial",
-                size: 22,
-              }),
+              new TextRun({ text: "Pelo presente instrumento, fica o(a) empregado(a) abaixo identificado(a) formalmente advertido(a):", font: "Arial", size: F }),
             ],
           }),
-          new Paragraph({ spacing: { after: 100 }, children: [] }),
           // Employee data
           new Paragraph({
-            spacing: { after: 80 },
+            spacing: { after: 40 },
             children: [
-              new TextRun({ text: "Empregado(a): ", font: "Arial", size: 22, bold: true }),
-              new TextRun({ text: data.employeeName, font: "Arial", size: 22 }),
+              new TextRun({ text: "Empregado(a): ", font: "Arial", size: F, bold: true }),
+              new TextRun({ text: data.employeeName, font: "Arial", size: F }),
             ],
           }),
           new Paragraph({
-            spacing: { after: 80 },
+            spacing: { after: 40 },
             children: [
-              new TextRun({ text: "CPF: ", font: "Arial", size: 22, bold: true }),
-              new TextRun({ text: data.cpf, font: "Arial", size: 22 }),
+              new TextRun({ text: "CPF: ", font: "Arial", size: F, bold: true }),
+              new TextRun({ text: data.cpf, font: "Arial", size: F }),
             ],
           }),
           ...(data.pis ? [
             new Paragraph({
-              spacing: { after: 80 },
+              spacing: { after: 40 },
               children: [
-                new TextRun({ text: "PIS: ", font: "Arial", size: 22, bold: true }),
-                new TextRun({ text: data.pis, font: "Arial", size: 22 }),
+                new TextRun({ text: "PIS: ", font: "Arial", size: F, bold: true }),
+                new TextRun({ text: data.pis, font: "Arial", size: F }),
               ],
             }),
           ] : []),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
           lineSeparator(),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
           // Reason
           new Paragraph({
-            spacing: { after: 100 },
+            spacing: { before: 80, after: 40 },
             children: [
-              new TextRun({
-                text: "MOTIVO DA ADVERTÊNCIA:",
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
+              new TextRun({ text: "MOTIVO DA ADVERTÊNCIA:", font: "Arial", size: F, bold: true }),
             ],
           }),
-          new Paragraph({ spacing: { after: 100 }, children: [] }),
           new Paragraph({
-            spacing: { after: 300 },
+            spacing: { after: 80 },
             alignment: AlignmentType.JUSTIFIED,
             children: reasonRuns,
           }),
-          new Paragraph({ spacing: { after: 100 }, children: [] }),
           // Legal basis
           new Paragraph({
-            spacing: { after: 200 },
+            spacing: { after: 80 },
             children: [
-              new TextRun({
-                text: "Base Legal: ",
-                font: "Arial",
-                size: 20,
-                bold: true,
-                italics: true,
-              }),
-              new TextRun({
-                text: "Art. 2º (poder diretivo do empregador) e Art. 482 (justa causa por reiteração) da Consolidação das Leis do Trabalho — CLT.",
-                font: "Arial",
-                size: 20,
-                italics: true,
-              }),
+              new TextRun({ text: "Base Legal: ", font: "Arial", size: FS, bold: true, italics: true }),
+              new TextRun({ text: "Art. 2º e Art. 482 da CLT.", font: "Arial", size: FS, italics: true }),
             ],
           }),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
           new Paragraph({
-            spacing: { after: 400 },
+            spacing: { after: 120 },
             children: [
-              new TextRun({
-                text: "Para que produza os devidos efeitos legais, firmo o presente termo em 02 (duas) vias de igual teor e forma.",
-                font: "Arial",
-                size: 22,
-                italics: true,
-              }),
+              new TextRun({ text: "Para que produza os devidos efeitos legais, firmo o presente termo em 02 (duas) vias de igual teor e forma.", font: "Arial", size: F, italics: true }),
             ],
           }),
-          new Paragraph({ spacing: { after: 300 }, children: [] }),
           lineSeparator(),
-          new Paragraph({ spacing: { after: 300 }, children: [] }),
           // Signatures
           new Paragraph({
+            spacing: { before: 200, after: 20 },
             alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
             children: [
-              new TextRun({ text: "________________________________________", font: "Arial", size: 22 }),
+              new TextRun({ text: "________________________________________", font: "Arial", size: F }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 10 },
+            children: [
+              new TextRun({ text: data.employeeName, font: "Arial", size: F, bold: true }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 10 },
+            children: [
+              new TextRun({ text: `CPF: ${data.cpf}`, font: "Arial", size: FS, color: "555555" }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 120 },
+            children: [
+              new TextRun({ text: "Empregado(a)", font: "Arial", size: 16, italics: true, color: "888888" }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 20 },
             children: [
-              new TextRun({ text: data.employeeName, font: "Arial", size: 22, bold: true }),
+              new TextRun({ text: "________________________________________", font: "Arial", size: F }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
+            spacing: { after: 10 },
             children: [
-              new TextRun({ text: `CPF: ${data.cpf}`, font: "Arial", size: 20, color: "555555" }),
+              new TextRun({ text: data.companyName, font: "Arial", size: F, bold: true }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 20 },
+            spacing: { after: 10 },
             children: [
-              new TextRun({ text: "Empregado(a)", font: "Arial", size: 18, italics: true, color: "888888" }),
-            ],
-          }),
-          new Paragraph({ spacing: { after: 300 }, children: [] }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 40 },
-            children: [
-              new TextRun({ text: "________________________________________", font: "Arial", size: 22 }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 20 },
-            children: [
-              new TextRun({ text: data.companyName, font: "Arial", size: 22, bold: true }),
-            ],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 80 },
-            children: [
-              new TextRun({ text: `CNPJ: ${data.cnpj}`, font: "Arial", size: 20, color: "555555" }),
+              new TextRun({ text: `CNPJ: ${data.cnpj}`, font: "Arial", size: FS, color: "555555" }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              new TextRun({ text: "Empregador", font: "Arial", size: 18, italics: true, color: "888888" }),
+              new TextRun({ text: "Empregador", font: "Arial", size: 16, italics: true, color: "888888" }),
             ],
           }),
         ],
