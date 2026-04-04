@@ -147,11 +147,16 @@ export function ChatbotFlow() {
     }
   };
 
-  const submitFaltaDate = (date: Date) => {
-    const dateStr = format(date, "dd/MM/yyyy", { locale: ptBR });
-    const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
-    addUserMsg(dateStr);
+  const submitFaltaDates = () => {
+    if (faltaDates.length === 0) return;
+    const sorted = [...faltaDates].sort((a, b) => a.getTime() - b.getTime());
+    const datesStr = sorted.map(d => format(d, "dd/MM/yyyy", { locale: ptBR })).join(", ");
+    const datesFull = sorted.map(d => format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }));
+    const datesText = datesFull.length === 1
+      ? `no dia ${datesFull[0]}`
+      : `nos dias ${datesFull.slice(0, -1).join(", ")} e ${datesFull[datesFull.length - 1]}`;
+    setReason(`Falta${sorted.length > 1 ? "s" : ""} injustificada${sorted.length > 1 ? "s" : ""} ao serviço ${datesText}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+    addUserMsg(datesStr);
     goToNextAfterReason();
   };
 
