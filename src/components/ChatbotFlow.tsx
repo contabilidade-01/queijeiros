@@ -24,9 +24,12 @@ type Step =
   | "reason_custom"
   | "reason_falta_date"
   | "recent_absence"
+  | "previous_warnings_yn"
   | "previous_warnings"
+  | "previous_suspensions_yn"
   | "previous_suspensions"
   | "third_suspension"
+  | "unjustified_absences_yn"
   | "unjustified_absences"
   | "pis"
   | "confirm";
