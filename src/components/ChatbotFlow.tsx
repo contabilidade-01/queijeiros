@@ -126,11 +126,10 @@ export function ChatbotFlow() {
     addUserMsg(format(date, "dd/MM/yyyy", { locale: ptBR }));
     if (docType === "warning") {
       addBotMsg("Qual o motivo da advertência?");
-      setStep("reason");
     } else {
-      addBotMsg("Descreva o motivo:");
-      setStep("reason");
+      addBotMsg("Qual o motivo da suspensão?");
     }
+    setStep("reason");
   };
 
   const FALTA_INJUSTIFICADA_TEXT = "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.";
