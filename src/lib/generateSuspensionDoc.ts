@@ -46,20 +46,35 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   const justificationRuns: TextRun[] = [];
 
-  justificationRuns.push(
-    new TextRun({
-      text: `Devido às suas repetidas ausências não justificadas`,
-      font: "Arial", size: F,
-    })
-  );
-
-  if (data.recentAbsenceDate) {
+  if (data.unjustifiedAbsences.length > 0) {
     justificationRuns.push(
       new TextRun({
-        text: `, inclusive a mais recente em ${data.recentAbsenceDate}`,
+        text: `Devido às suas ausências não justificadas nos dias `,
         font: "Arial", size: F,
       })
     );
+    justificationRuns.push(
+      new TextRun({
+        text: data.unjustifiedAbsences.join(", "),
+        font: "Arial", size: F, bold: true,
+      })
+    );
+  } else {
+    justificationRuns.push(
+      new TextRun({
+        text: `Devido às suas repetidas ausências não justificadas`,
+        font: "Arial", size: F,
+      })
+    );
+
+    if (data.recentAbsenceDate) {
+      justificationRuns.push(
+        new TextRun({
+          text: `, inclusive a mais recente em ${data.recentAbsenceDate}`,
+          font: "Arial", size: F,
+        })
+      );
+    }
   }
 
   if (data.previousSuspensions.length > 0) {
@@ -77,22 +92,13 @@ export function generateSuspensionDoc(data: SuspensionData) {
     );
   }
 
-  if (data.previousWarnings.length > 0 || data.unjustifiedAbsences.length > 0) {
+  if (data.previousWarnings.length > 0) {
     justificationRuns.push(
       new TextRun({
         text: ` e advertências formais anteriormente aplicadas`,
         font: "Arial", size: F,
       })
     );
-
-    if (data.unjustifiedAbsences.length > 0) {
-      justificationRuns.push(
-        new TextRun({
-          text: ` (Faltas sem justificativas nos dias ${data.unjustifiedAbsences.join(", ")})`,
-          font: "Arial", size: F,
-        })
-      );
-    }
   }
 
   justificationRuns.push(

@@ -156,6 +156,9 @@ export function ChatbotFlow() {
       ? `no dia ${datesFull[0]}`
       : `nos dias ${datesFull.slice(0, -1).join(", ")} e ${datesFull[datesFull.length - 1]}`;
     setReason(`Falta${sorted.length > 1 ? "s" : ""} injustificada${sorted.length > 1 ? "s" : ""} ao serviço ${datesText}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+    // Populate unjustifiedAbsences with the falta dates for the document generator
+    const datesFormatted = sorted.map(d => format(d, "dd/MM/yyyy", { locale: ptBR }));
+    setUnjustifiedAbsences(datesFormatted);
     addUserMsg(datesStr);
     goToNextAfterReason();
   };
