@@ -179,8 +179,8 @@ export function ChatbotFlow() {
   const submitRecentAbsence = () => {
     if (recentAbsence) addUserMsg(recentAbsence);
     else addUserMsg("(pulado)");
-    addBotMsg("Houve suspensões anteriores? Adicione ou clique em Pular.");
-    setStep("previous_suspensions");
+    addBotMsg("Houve suspensões anteriores?");
+    setStep("previous_suspensions_yn");
   };
 
   const goToThirdSuspension = () => {
