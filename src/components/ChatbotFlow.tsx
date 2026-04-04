@@ -455,7 +455,27 @@ export function ChatbotFlow() {
             </div>
           )}
 
-          {step === "recent_absence" && (
+          {step === "reason_falta_date" && (
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-muted-foreground">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Selecionar data da falta
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    onSelect={(d) => d && submitFaltaDate(d)}
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+
             <div className="flex gap-2">
               <Input
                 placeholder="Ex: 29 de maio de 2025"
