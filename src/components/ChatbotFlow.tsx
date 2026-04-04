@@ -171,8 +171,8 @@ export function ChatbotFlow() {
       addBotMsg("Data da falta mais recente? (deixe vazio para pular)");
       setStep("recent_absence");
     } else {
-      addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-      setStep("previous_warnings");
+      addBotMsg("Houve advertências anteriores?");
+      setStep("previous_warnings_yn");
     }
   };
 
