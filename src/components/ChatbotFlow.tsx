@@ -21,6 +21,7 @@ type Step =
   | "days"
   | "start_date"
   | "reason"
+  | "reason_custom"
   | "recent_absence"
   | "previous_warnings"
   | "previous_suspensions"
