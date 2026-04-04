@@ -170,18 +170,6 @@ export function ChatbotFlow() {
     }
   };
 
-  const submitReason = () => {
-    if (!reason.trim()) return;
-    addUserMsg(reason);
-
-    if (docType === "suspension") {
-      addBotMsg("Data da falta mais recente? (deixe vazio para pular)");
-      setStep("recent_absence");
-    } else {
-      addBotMsg("Houve advertências anteriores?");
-      setStep("previous_warnings_yn");
-    }
-  };
 
   const submitRecentAbsence = () => {
     if (recentAbsence) addUserMsg(recentAbsence);
