@@ -92,22 +92,13 @@ export function generateSuspensionDoc(data: SuspensionData) {
     );
   }
 
-  if (data.previousWarnings.length > 0 || data.unjustifiedAbsences.length > 0) {
+  if (data.previousWarnings.length > 0) {
     justificationRuns.push(
       new TextRun({
         text: ` e advertências formais anteriormente aplicadas`,
         font: "Arial", size: F,
       })
     );
-
-    if (data.unjustifiedAbsences.length > 0) {
-      justificationRuns.push(
-        new TextRun({
-          text: ` (Faltas sem justificativas nos dias ${data.unjustifiedAbsences.join(", ")})`,
-          font: "Arial", size: F,
-        })
-      );
-    }
   }
 
   justificationRuns.push(
