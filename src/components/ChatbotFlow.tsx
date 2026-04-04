@@ -22,6 +22,7 @@ type Step =
   | "start_date"
   | "reason"
   | "reason_custom"
+  | "reason_falta_date"
   | "recent_absence"
   | "previous_warnings"
   | "previous_suspensions"
@@ -133,17 +134,23 @@ export function ChatbotFlow() {
 
   const selectWarningReason = (type: "falta" | "outro") => {
     if (type === "falta") {
-      setReason(FALTA_INJUSTIFICADA_TEXT);
       addUserMsg("Falta Injustificada");
-      if (docType === "warning") {
-        addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-        setStep("previous_warnings");
-      }
+      addBotMsg("Qual a data da falta?");
+      setStep("reason_falta_date");
     } else {
       addUserMsg("Outro motivo");
       addBotMsg("Descreva o motivo:");
       setStep("reason_custom");
     }
+  };
+
+  const submitFaltaDate = (date: Date) => {
+    const dateStr = format(date, "dd/MM/yyyy", { locale: ptBR });
+    const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+    addUserMsg(dateStr);
+    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+    setStep("previous_warnings");
   };
 
   const submitCustomReason = () => {
@@ -445,6 +452,27 @@ export function ChatbotFlow() {
               <Button onClick={submitCustomReason} disabled={!reason.trim()} className="w-full">
                 Enviar
               </Button>
+            </div>
+          )}
+
+          {step === "reason_falta_date" && (
+            <div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" className="w-full justify-start text-muted-foreground">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Selecionar data da falta
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    onSelect={(d) => d && submitFaltaDate(d)}
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
           )}
 
