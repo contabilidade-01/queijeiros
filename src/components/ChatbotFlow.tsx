@@ -21,6 +21,7 @@ type Step =
   | "days"
   | "start_date"
   | "reason"
+  | "reason_custom"
   | "recent_absence"
   | "previous_warnings"
   | "previous_suspensions"
@@ -119,8 +120,37 @@ export function ChatbotFlow() {
   const submitDate = (date: Date) => {
     setStartDate(date);
     addUserMsg(format(date, "dd/MM/yyyy", { locale: ptBR }));
-    addBotMsg("Descreva o motivo:");
-    setStep("reason");
+    if (docType === "warning") {
+      addBotMsg("Qual o motivo da advertência?");
+      setStep("reason");
+    } else {
+      addBotMsg("Descreva o motivo:");
+      setStep("reason");
+    }
+  };
+
+  const FALTA_INJUSTIFICADA_TEXT = "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.";
+
+  const selectWarningReason = (type: "falta" | "outro") => {
+    if (type === "falta") {
+      setReason(FALTA_INJUSTIFICADA_TEXT);
+      addUserMsg("Falta Injustificada");
+      if (docType === "warning") {
+        addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+        setStep("previous_warnings");
+      }
+    } else {
+      addUserMsg("Outro motivo");
+      addBotMsg("Descreva o motivo:");
+      setStep("reason_custom");
+    }
+  };
+
+  const submitCustomReason = () => {
+    if (!reason.trim()) return;
+    addUserMsg(reason);
+    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+    setStep("previous_warnings");
   };
 
   const submitReason = () => {
@@ -379,7 +409,18 @@ export function ChatbotFlow() {
             </div>
           )}
 
-          {step === "reason" && (
+          {step === "reason" && docType === "warning" && (
+            <div className="flex flex-col gap-2">
+              <Button onClick={() => selectWarningReason("falta")} className="w-full">
+                Falta Injustificada
+              </Button>
+              <Button onClick={() => selectWarningReason("outro")} variant="secondary" className="w-full">
+                Outro motivo
+              </Button>
+            </div>
+          )}
+
+          {step === "reason" && docType === "suspension" && (
             <div className="space-y-2">
               <Textarea
                 placeholder="Descreva o motivo..."
@@ -388,6 +429,20 @@ export function ChatbotFlow() {
                 className="min-h-[80px]"
               />
               <Button onClick={submitReason} disabled={!reason.trim()} className="w-full">
+                Enviar
+              </Button>
+            </div>
+          )}
+
+          {step === "reason_custom" && (
+            <div className="space-y-2">
+              <Textarea
+                placeholder="Descreva o motivo..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="min-h-[80px]"
+              />
+              <Button onClick={submitCustomReason} disabled={!reason.trim()} className="w-full">
                 Enviar
               </Button>
             </div>
