@@ -233,7 +233,7 @@ export function ChatbotFlow() {
   const goToAbsences = () => {
     if (previousWarnings.length > 0) addUserMsg(previousWarnings.join(", "));
     // Se o motivo já é falta injustificada, pular a pergunta de faltas
-    if (reason.startsWith("Falta injustificada")) {
+    if (reason.startsWith("Falta injustificada") || reason.startsWith("Faltas injustificadas")) {
       goToPis();
     } else {
       addBotMsg("Houve faltas sem justificativa?");
