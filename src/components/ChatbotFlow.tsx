@@ -197,9 +197,41 @@ export function ChatbotFlow() {
     setStep("previous_warnings_yn");
   };
 
+  const answerPreviousWarningsYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as advertências anteriores:");
+      setStep("previous_warnings");
+    } else {
+      addUserMsg("Não");
+      goToAbsences();
+    }
+  };
+
+  const answerPreviousSuspensionsYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as suspensões anteriores:");
+      setStep("previous_suspensions");
+    } else {
+      addUserMsg("Não");
+      goToThirdSuspension();
+    }
+  };
+
+  const answerUnjustifiedAbsencesYn = (yes: boolean) => {
+    if (yes) {
+      addUserMsg("Sim");
+      addBotMsg("Informe as datas das faltas:");
+      setStep("unjustified_absences");
+    } else {
+      addUserMsg("Não");
+      goToPis();
+    }
+  };
+
   const goToAbsences = () => {
     if (previousWarnings.length > 0) addUserMsg(previousWarnings.join(", "));
-    else addUserMsg("(nenhuma)");
     addBotMsg("Houve faltas sem justificativa?");
     setStep("unjustified_absences_yn");
   };
