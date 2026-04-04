@@ -237,7 +237,6 @@ export function ChatbotFlow() {
 
   const goToPis = () => {
     if (unjustifiedAbsences.length > 0) addUserMsg(unjustifiedAbsences.join(", "));
-    else addUserMsg("(nenhuma)");
     addBotMsg(`PIS do funcionário${pisInput ? ` (atual: ${pisInput})` : ""}. Altere ou clique em Pular.`);
     setStep("pis");
   };
