@@ -211,7 +211,8 @@ export function SuspensionForm() {
             </div>
             <div>
               <Label htmlFor="days">Dias de Suspensão *</Label>
-              <Input id="days" type="number" min={1} max={30} value={suspensionDays} onChange={(e) => setSuspensionDays(Math.max(1, parseInt(e.target.value) || 1))} className="mt-1" />
+              <Input id="days" type="number" min={1} max={30} value={suspensionDays} onChange={(e) => setSuspensionDays(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))} className="mt-1" />
+              <p className="text-xs text-muted-foreground mt-1">Máximo 30 dias (Art. 474 CLT)</p>
             </div>
           </div>
 
