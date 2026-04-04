@@ -449,27 +449,13 @@ export function ChatbotFlow() {
             </div>
           )}
 
-          {step === "reason" && docType === "warning" && (
+          {step === "reason" && (
             <div className="flex flex-col gap-2">
-              <Button onClick={() => selectWarningReason("falta")} className="w-full">
+              <Button onClick={() => selectReason("falta")} className="w-full">
                 Falta Injustificada
               </Button>
-              <Button onClick={() => selectWarningReason("outro")} variant="secondary" className="w-full">
+              <Button onClick={() => selectReason("outro")} variant="secondary" className="w-full">
                 Outro motivo
-              </Button>
-            </div>
-          )}
-
-          {step === "reason" && docType === "suspension" && (
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Descreva o motivo..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <Button onClick={submitReason} disabled={!reason.trim()} className="w-full">
-                Enviar
               </Button>
             </div>
           )}
