@@ -476,6 +476,7 @@ export function ChatbotFlow() {
             </div>
           )}
 
+          {step === "recent_absence" && (
             <div className="flex gap-2">
               <Input
                 placeholder="Ex: 29 de maio de 2025"
