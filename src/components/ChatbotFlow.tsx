@@ -68,6 +68,7 @@ export function ChatbotFlow() {
   const [isThirdSuspension, setIsThirdSuspension] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [faltaDates, setFaltaDates] = useState<Date[]>([]);
 
   useEffect(() => {
     if (company) {
@@ -146,11 +147,16 @@ export function ChatbotFlow() {
     }
   };
 
-  const submitFaltaDate = (date: Date) => {
-    const dateStr = format(date, "dd/MM/yyyy", { locale: ptBR });
-    const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
-    setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
-    addUserMsg(dateStr);
+  const submitFaltaDates = () => {
+    if (faltaDates.length === 0) return;
+    const sorted = [...faltaDates].sort((a, b) => a.getTime() - b.getTime());
+    const datesStr = sorted.map(d => format(d, "dd/MM/yyyy", { locale: ptBR })).join(", ");
+    const datesFull = sorted.map(d => format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }));
+    const datesText = datesFull.length === 1
+      ? `no dia ${datesFull[0]}`
+      : `nos dias ${datesFull.slice(0, -1).join(", ")} e ${datesFull[datesFull.length - 1]}`;
+    setReason(`Falta${sorted.length > 1 ? "s" : ""} injustificada${sorted.length > 1 ? "s" : ""} ao serviço ${datesText}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+    addUserMsg(datesStr);
     goToNextAfterReason();
   };
 
@@ -475,23 +481,39 @@ export function ChatbotFlow() {
           )}
 
           {step === "reason_falta_date" && (
-            <div>
+            <div className="space-y-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-muted-foreground">
+                  <Button variant="outline" className={cn("w-full justify-start", faltaDates.length === 0 && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    Selecionar data da falta
+                    {faltaDates.length > 0
+                      ? `${faltaDates.length} data${faltaDates.length > 1 ? "s" : ""} selecionada${faltaDates.length > 1 ? "s" : ""}`
+                      : "Selecionar data(s) da falta"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="single"
-                    onSelect={(d) => d && submitFaltaDate(d)}
+                    mode="multiple"
+                    selected={faltaDates}
+                    onSelect={(dates) => setFaltaDates(dates || [])}
                     locale={ptBR}
                     className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
+              {faltaDates.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {[...faltaDates].sort((a, b) => a.getTime() - b.getTime()).map((d, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {format(d, "dd/MM/yyyy", { locale: ptBR })}
+                      <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => setFaltaDates(faltaDates.filter((_, idx) => idx !== i))} />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Button onClick={submitFaltaDates} disabled={faltaDates.length === 0} className="w-full">
+                Continuar
+              </Button>
             </div>
           )}
 
