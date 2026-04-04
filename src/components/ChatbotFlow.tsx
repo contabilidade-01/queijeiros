@@ -152,15 +152,15 @@ export function ChatbotFlow() {
     const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
     addUserMsg(dateStr);
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
   };
 
   const submitCustomReason = () => {
     if (!reason.trim()) return;
     addUserMsg(reason);
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
   };
 
   const submitReason = () => {
