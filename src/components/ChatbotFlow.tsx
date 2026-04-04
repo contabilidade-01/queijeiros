@@ -500,7 +500,7 @@ export function ChatbotFlow() {
                   onKeyDown={(e) => e.key === "Enter" && addListItem(previousSuspensions, setPreviousSuspensions)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="outline" onClick={() => addListItem(previousSuspensions, setPreviousSuspensions)}>
+                <Button size="icon" variant={tempInput.trim() ? "default" : "outline"} onClick={() => addListItem(previousSuspensions, setPreviousSuspensions)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -516,7 +516,7 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToThirdSuspension} variant="secondary" className="w-full">
+              <Button onClick={goToThirdSuspension} variant={previousSuspensions.length > 0 ? "default" : "secondary"} className="w-full">
                 {previousSuspensions.length > 0 ? "Continuar" : "Pular"}
               </Button>
             </div>
@@ -543,7 +543,7 @@ export function ChatbotFlow() {
                   onKeyDown={(e) => e.key === "Enter" && addListItem(previousWarnings, setPreviousWarnings)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="outline" onClick={() => addListItem(previousWarnings, setPreviousWarnings)}>
+                <Button size="icon" variant={tempInput.trim() ? "default" : "outline"} onClick={() => addListItem(previousWarnings, setPreviousWarnings)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -559,7 +559,7 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToAbsences} variant="secondary" className="w-full">
+              <Button onClick={goToAbsences} variant={previousWarnings.length > 0 ? "default" : "secondary"} className="w-full">
                 {previousWarnings.length > 0 ? "Continuar" : "Pular"}
               </Button>
             </div>
@@ -575,7 +575,7 @@ export function ChatbotFlow() {
                   onKeyDown={(e) => e.key === "Enter" && addListItem(unjustifiedAbsences, setUnjustifiedAbsences)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="outline" onClick={() => addListItem(unjustifiedAbsences, setUnjustifiedAbsences)}>
+                <Button size="icon" variant={tempInput.trim() ? "default" : "outline"} onClick={() => addListItem(unjustifiedAbsences, setUnjustifiedAbsences)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -591,7 +591,7 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToPis} variant="secondary" className="w-full">
+              <Button onClick={goToPis} variant={unjustifiedAbsences.length > 0 ? "default" : "secondary"} className="w-full">
                 {unjustifiedAbsences.length > 0 ? "Continuar" : "Pular"}
               </Button>
             </div>
