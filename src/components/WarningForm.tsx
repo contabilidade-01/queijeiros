@@ -286,21 +286,25 @@ export function WarningForm() {
               </div>
             )}
           </div>
-          <Separator />
-          <div>
-            <Label className="text-sm font-medium">Faltas sem Justificativa</Label>
-            <div className="mt-2 flex gap-2">
-              <Input placeholder="Ex: 09/11/2024" value={newAbsence} onChange={(e) => setNewAbsence(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem(unjustifiedAbsences, setUnjustifiedAbsences, newAbsence, setNewAbsence)} className="flex-1" />
-              <Button size="icon" variant="outline" onClick={() => addItem(unjustifiedAbsences, setUnjustifiedAbsences, newAbsence, setNewAbsence)}><Plus className="h-4 w-4" /></Button>
-            </div>
-            {unjustifiedAbsences.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {unjustifiedAbsences.map((item, i) => (
-                  <Badge key={i} variant="secondary" className="gap-1 pr-1">{item}<button onClick={() => removeItem(unjustifiedAbsences, setUnjustifiedAbsences, i)} className="ml-1 rounded-full hover:bg-muted p-0.5"><X className="h-3 w-3" /></button></Badge>
-                ))}
+          {reasonType !== "falta" && (
+            <>
+              <Separator />
+              <div>
+                <Label className="text-sm font-medium">Faltas sem Justificativa</Label>
+                <div className="mt-2 flex gap-2">
+                  <Input placeholder="Ex: 09/11/2024" value={newAbsence} onChange={(e) => setNewAbsence(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addItem(unjustifiedAbsences, setUnjustifiedAbsences, newAbsence, setNewAbsence)} className="flex-1" />
+                  <Button size="icon" variant="outline" onClick={() => addItem(unjustifiedAbsences, setUnjustifiedAbsences, newAbsence, setNewAbsence)}><Plus className="h-4 w-4" /></Button>
+                </div>
+                {unjustifiedAbsences.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {unjustifiedAbsences.map((item, i) => (
+                      <Badge key={i} variant="secondary" className="gap-1 pr-1">{item}<button onClick={() => removeItem(unjustifiedAbsences, setUnjustifiedAbsences, i)} className="ml-1 rounded-full hover:bg-muted p-0.5"><X className="h-3 w-3" /></button></Badge>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
