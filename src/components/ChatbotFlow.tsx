@@ -348,7 +348,7 @@ export function ChatbotFlow() {
                 min={1}
                 max={30}
                 value={days}
-                onChange={(e) => setDays(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => setDays(Math.min(30, Math.max(1, parseInt(e.target.value) || 1)))}
                 className="flex-1"
               />
               <Button onClick={submitDays}>
