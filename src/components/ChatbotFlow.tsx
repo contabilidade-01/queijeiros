@@ -134,17 +134,23 @@ export function ChatbotFlow() {
 
   const selectWarningReason = (type: "falta" | "outro") => {
     if (type === "falta") {
-      setReason(FALTA_INJUSTIFICADA_TEXT);
       addUserMsg("Falta Injustificada");
-      if (docType === "warning") {
-        addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-        setStep("previous_warnings");
-      }
+      addBotMsg("Qual a data da falta?");
+      setStep("reason_falta_date");
     } else {
       addUserMsg("Outro motivo");
       addBotMsg("Descreva o motivo:");
       setStep("reason_custom");
     }
+  };
+
+  const submitFaltaDate = (date: Date) => {
+    const dateStr = format(date, "dd/MM/yyyy", { locale: ptBR });
+    const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+    setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+    addUserMsg(dateStr);
+    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
+    setStep("previous_warnings");
   };
 
   const submitCustomReason = () => {
