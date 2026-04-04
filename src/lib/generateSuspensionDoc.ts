@@ -1,8 +1,8 @@
 import {
-  Document, Packer, Paragraph, TextRun, AlignmentType
+  Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle, TabStopType, TabStopPosition
 } from "docx";
 import { saveAs } from "file-saver";
-import { format, addDays, differenceInCalendarDays } from "date-fns";
+import { format, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
 export interface SuspensionData {
@@ -28,11 +28,19 @@ function formatDateFull(date: Date): string {
   return format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
 }
 
+function lineSeparator(): Paragraph {
+  return new Paragraph({
+    spacing: { before: 100, after: 100 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC", space: 4 } },
+    children: [],
+  });
+}
+
 export function generateSuspensionDoc(data: SuspensionData) {
   const endDate = addDays(data.startDate, data.suspensionDays - 1);
   const returnDate = addDays(endDate, 1);
 
-  // Build the justification paragraph
+  // Build justification
   const justificationRuns: TextRun[] = [];
 
   justificationRuns.push(
@@ -93,7 +101,7 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   justificationRuns.push(
     new TextRun({
-      text: `, estamos procedendo com uma suspensão de ${data.suspensionDays.toString().padStart(2, "0")} dia${data.suspensionDays > 1 ? "s" : ""}. `,
+      text: `, estamos procedendo com uma suspensão disciplinar de ${data.suspensionDays.toString().padStart(2, "0")} (${data.suspensionDays > 1 ? extenso(data.suspensionDays) : "um"}) dia${data.suspensionDays > 1 ? "s" : ""}, `,
       font: "Arial",
       size: 22,
     })
@@ -101,7 +109,7 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   justificationRuns.push(
     new TextRun({
-      text: "Esta medida é necessária para enfatizar a seriedade do cumprimento das responsabilidades e o impacto negativo que suas faltas geram na equipe e nos processos da empresa. ",
+      text: "com fundamento no artigo 474 da Consolidação das Leis do Trabalho (CLT), que confere ao empregador o poder disciplinar de suspender o empregado por até 30 (trinta) dias consecutivos.",
       font: "Arial",
       size: 22,
     })
@@ -109,7 +117,15 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   justificationRuns.push(
     new TextRun({
-      text: "É importante lembrar que, conforme previsto no artigo 482 da Consolidação das Leis do Trabalho (CLT), a continuidade desse comportamento pode resultar em demissão por justa causa. ",
+      text: " Esta medida é necessária para enfatizar a seriedade do cumprimento das responsabilidades e o impacto negativo que suas faltas geram na equipe e nos processos da empresa.",
+      font: "Arial",
+      size: 22,
+    })
+  );
+
+  justificationRuns.push(
+    new TextRun({
+      text: " Ressalta-se que, conforme o artigo 482 da CLT, a continuidade desse comportamento pode resultar em rescisão do contrato de trabalho por justa causa.",
       font: "Arial",
       size: 22,
     })
@@ -117,8 +133,11 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   if (data.isThirdSuspension) {
     justificationRuns.push(
+      new TextRun({ text: "\n\n", font: "Arial", size: 22 })
+    );
+    justificationRuns.push(
       new TextRun({
-        text: "ATENÇÃO: A próxima falta injustificada pode levar a DEMISSÃO COM JUSTA CAUSA.",
+        text: "ATENÇÃO: A próxima falta injustificada poderá ensejar a RESCISÃO DO CONTRATO DE TRABALHO POR JUSTA CAUSA, nos termos do artigo 482, alínea \"e\" (desídia no desempenho das respectivas funções) da CLT.",
         font: "Arial",
         size: 22,
         bold: true,
@@ -128,7 +147,7 @@ export function generateSuspensionDoc(data: SuspensionData) {
 
   justificationRuns.push(
     new TextRun({
-      text: " Esperamos que, ao retornar, você demonstre um compromisso renovado com suas obrigações profissionais.",
+      text: " Esperamos que, ao retornar, demonstre compromisso renovado com suas obrigações profissionais.",
       font: "Arial",
       size: 22,
     })
@@ -140,114 +159,90 @@ export function generateSuspensionDoc(data: SuspensionData) {
         properties: {
           page: {
             size: { width: 11906, height: 16838 },
-            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+            margin: { top: 1800, right: 1440, bottom: 1440, left: 1440 },
           },
         },
         children: [
+          // Title
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 80 },
+            children: [
+              new TextRun({
+                text: data.companyName.toUpperCase(),
+                font: "Arial",
+                size: 24,
+                bold: true,
+              }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 },
+            children: [
+              new TextRun({
+                text: `CNPJ: ${data.cnpj}`,
+                font: "Arial",
+                size: 18,
+                color: "666666",
+              }),
+            ],
+          }),
+          lineSeparator(),
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 400 },
             children: [
               new TextRun({
-                text: "TERMO DE SUSPENSÃO",
+                text: "TERMO DE SUSPENSÃO DISCIPLINAR",
                 font: "Arial",
                 size: 28,
                 bold: true,
               }),
             ],
           }),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          // Date
           new Paragraph({
-            spacing: { after: 200 },
+            alignment: AlignmentType.RIGHT,
+            spacing: { after: 300 },
             children: [
               new TextRun({
-                text: "Pelo presente fica V. S. suspenso no:",
+                text: formatDateFull(data.startDate),
                 font: "Arial",
-                size: 22,
-              }),
-            ],
-          }),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [
-              new TextRun({
-                text: "Período de: ",
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
-              new TextRun({
-                text: `${formatDateBR(data.startDate)} a ${formatDateBR(endDate)}`,
-                font: "Arial",
-                size: 22,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [
-              new TextRun({
-                text: "Total de dias de suspensão: ",
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
-              new TextRun({
-                text: data.suspensionDays.toString(),
-                font: "Arial",
-                size: 22,
-              }),
-            ],
-          }),
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [
-              new TextRun({
-                text: "Data de retorno ao trabalho: ",
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
-              new TextRun({
-                text: formatDateBR(returnDate),
-                font: "Arial",
-                size: 22,
-              }),
-            ],
-          }),
-          new Paragraph({ spacing: { after: 200 }, children: [] }),
-          new Paragraph({
-            spacing: { after: 100 },
-            children: [
-              new TextRun({
-                text: "Pelas faltas discriminadas abaixo:",
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
-            ],
-          }),
-          new Paragraph({ spacing: { after: 100 }, children: [] }),
-          new Paragraph({
-            spacing: { after: 200 },
-            alignment: AlignmentType.JUSTIFIED,
-            children: justificationRuns,
-          }),
-          new Paragraph({ spacing: { after: 100 }, children: [] }),
-          new Paragraph({
-            spacing: { after: 400 },
-            children: [
-              new TextRun({
-                text: "Esperamos que no futuro procure não incorrer em novas faltas.",
-                font: "Arial",
-                size: 22,
+                size: 20,
                 italics: true,
               }),
             ],
           }),
           new Paragraph({ spacing: { after: 200 }, children: [] }),
+          // Intro
+          new Paragraph({
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: "Pelo presente instrumento, fica o(a) empregado(a) abaixo identificado(a) suspenso(a) de suas atividades laborais:",
+                font: "Arial",
+                size: 22,
+              }),
+            ],
+          }),
+          new Paragraph({ spacing: { after: 100 }, children: [] }),
           // Employee data
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "Empregado(a): ", font: "Arial", size: 22, bold: true }),
+              new TextRun({ text: data.employeeName, font: "Arial", size: 22 }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "CPF: ", font: "Arial", size: 22, bold: true }),
+              new TextRun({ text: data.cpf, font: "Arial", size: 22 }),
+            ],
+          }),
           ...(data.pis ? [
             new Paragraph({
               spacing: { after: 80 },
@@ -257,69 +252,148 @@ export function generateSuspensionDoc(data: SuspensionData) {
               ],
             }),
           ] : []),
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          // Period
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "Período de suspensão: ", font: "Arial", size: 22, bold: true }),
+              new TextRun({
+                text: `${formatDateBR(data.startDate)} a ${formatDateBR(endDate)}`,
+                font: "Arial",
+                size: 22,
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "Total de dias: ", font: "Arial", size: 22, bold: true }),
+              new TextRun({
+                text: `${data.suspensionDays.toString().padStart(2, "0")} (${data.suspensionDays > 1 ? extenso(data.suspensionDays) : "um"}) dia${data.suspensionDays > 1 ? "s" : ""}`,
+                font: "Arial",
+                size: 22,
+              }),
+            ],
+          }),
+          new Paragraph({
+            spacing: { after: 80 },
+            children: [
+              new TextRun({ text: "Data de retorno: ", font: "Arial", size: 22, bold: true }),
+              new TextRun({ text: formatDateBR(returnDate), font: "Arial", size: 22 }),
+            ],
+          }),
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          lineSeparator(),
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          // Justification
+          new Paragraph({
+            spacing: { after: 100 },
+            children: [
+              new TextRun({
+                text: "FUNDAMENTAÇÃO:",
+                font: "Arial",
+                size: 22,
+                bold: true,
+              }),
+            ],
+          }),
+          new Paragraph({ spacing: { after: 100 }, children: [] }),
+          new Paragraph({
+            spacing: { after: 300 },
+            alignment: AlignmentType.JUSTIFIED,
+            children: justificationRuns,
+          }),
+          new Paragraph({ spacing: { after: 100 }, children: [] }),
+          // Legal basis
           new Paragraph({
             spacing: { after: 200 },
-            children: [],
+            children: [
+              new TextRun({
+                text: "Base Legal: ",
+                font: "Arial",
+                size: 20,
+                bold: true,
+                italics: true,
+              }),
+              new TextRun({
+                text: "Art. 2º (poder diretivo do empregador), Art. 474 (suspensão disciplinar) e Art. 482 (justa causa) da Consolidação das Leis do Trabalho — CLT.",
+                font: "Arial",
+                size: 20,
+                italics: true,
+              }),
+            ],
           }),
+          new Paragraph({ spacing: { after: 200 }, children: [] }),
+          new Paragraph({
+            spacing: { after: 400 },
+            children: [
+              new TextRun({
+                text: "Para que produza os devidos efeitos legais, firmo o presente termo em 02 (duas) vias de igual teor e forma.",
+                font: "Arial",
+                size: 22,
+                italics: true,
+              }),
+            ],
+          }),
+          new Paragraph({ spacing: { after: 300 }, children: [] }),
+          lineSeparator(),
+          new Paragraph({ spacing: { after: 300 }, children: [] }),
+          // Signatures
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 40 },
             children: [
-              new TextRun({
-                text: "________________________________________",
-                font: "Arial",
-                size: 22,
-              }),
+              new TextRun({ text: "________________________________________", font: "Arial", size: 22 }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: data.employeeName, font: "Arial", size: 22, bold: true }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 80 },
             children: [
-              new TextRun({
-                text: data.employeeName,
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
+              new TextRun({ text: `CPF: ${data.cpf}`, font: "Arial", size: 20, color: "555555" }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
+            spacing: { after: 20 },
             children: [
-              new TextRun({ text: "CPF: ", font: "Arial", size: 22 }),
-              new TextRun({ text: data.cpf, font: "Arial", size: 22 }),
+              new TextRun({ text: "Empregado(a)", font: "Arial", size: 18, italics: true, color: "888888" }),
             ],
           }),
+          new Paragraph({ spacing: { after: 300 }, children: [] }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 40 },
             children: [
-              new TextRun({
-                text: "________________________________________",
-                font: "Arial",
-                size: 22,
-              }),
+              new TextRun({ text: "________________________________________", font: "Arial", size: 22 }),
+            ],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 20 },
+            children: [
+              new TextRun({ text: data.companyName, font: "Arial", size: 22, bold: true }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             spacing: { after: 80 },
             children: [
-              new TextRun({
-                text: data.companyName,
-                font: "Arial",
-                size: 22,
-                bold: true,
-              }),
+              new TextRun({ text: `CNPJ: ${data.cnpj}`, font: "Arial", size: 20, color: "555555" }),
             ],
           }),
           new Paragraph({
             alignment: AlignmentType.CENTER,
             children: [
-              new TextRun({ text: "CNPJ: ", font: "Arial", size: 22 }),
-              new TextRun({ text: data.cnpj, font: "Arial", size: 22 }),
+              new TextRun({ text: "Empregador", font: "Arial", size: 18, italics: true, color: "888888" }),
             ],
           }),
         ],
@@ -328,6 +402,17 @@ export function generateSuspensionDoc(data: SuspensionData) {
   });
 
   return doc;
+}
+
+function extenso(n: number): string {
+  const nomes = [
+    "", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove",
+    "dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete",
+    "dezoito", "dezenove", "vinte", "vinte e um", "vinte e dois", "vinte e três",
+    "vinte e quatro", "vinte e cinco", "vinte e seis", "vinte e sete", "vinte e oito",
+    "vinte e nove", "trinta",
+  ];
+  return nomes[n] || n.toString();
 }
 
 export async function downloadSuspensionDoc(data: SuspensionData) {
