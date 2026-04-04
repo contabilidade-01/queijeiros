@@ -481,23 +481,39 @@ export function ChatbotFlow() {
           )}
 
           {step === "reason_falta_date" && (
-            <div>
+            <div className="space-y-2">
               <Popover>
                 <PopoverTrigger asChild>
-                  <Button variant="outline" className="w-full justify-start text-muted-foreground">
+                  <Button variant="outline" className={cn("w-full justify-start", faltaDates.length === 0 && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    Selecionar data da falta
+                    {faltaDates.length > 0
+                      ? `${faltaDates.length} data${faltaDates.length > 1 ? "s" : ""} selecionada${faltaDates.length > 1 ? "s" : ""}`
+                      : "Selecionar data(s) da falta"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
-                    mode="single"
-                    onSelect={(d) => d && submitFaltaDate(d)}
+                    mode="multiple"
+                    selected={faltaDates}
+                    onSelect={(dates) => setFaltaDates(dates || [])}
                     locale={ptBR}
                     className="p-3 pointer-events-auto"
                   />
                 </PopoverContent>
               </Popover>
+              {faltaDates.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {[...faltaDates].sort((a, b) => a.getTime() - b.getTime()).map((d, i) => (
+                    <Badge key={i} variant="secondary" className="text-xs">
+                      {format(d, "dd/MM/yyyy", { locale: ptBR })}
+                      <X className="h-3 w-3 ml-1 cursor-pointer" onClick={() => setFaltaDates(faltaDates.filter((_, idx) => idx !== i))} />
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <Button onClick={submitFaltaDates} disabled={faltaDates.length === 0} className="w-full">
+                Continuar
+              </Button>
             </div>
           )}
 
