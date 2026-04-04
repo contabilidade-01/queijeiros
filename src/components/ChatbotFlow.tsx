@@ -126,16 +126,15 @@ export function ChatbotFlow() {
     addUserMsg(format(date, "dd/MM/yyyy", { locale: ptBR }));
     if (docType === "warning") {
       addBotMsg("Qual o motivo da advertência?");
-      setStep("reason");
     } else {
-      addBotMsg("Descreva o motivo:");
-      setStep("reason");
+      addBotMsg("Qual o motivo da suspensão?");
     }
+    setStep("reason");
   };
 
   const FALTA_INJUSTIFICADA_TEXT = "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.";
 
-  const selectWarningReason = (type: "falta" | "outro") => {
+  const selectReason = (type: "falta" | "outro") => {
     if (type === "falta") {
       addUserMsg("Falta Injustificada");
       addBotMsg("Qual a data da falta?");
@@ -152,29 +151,25 @@ export function ChatbotFlow() {
     const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
     addUserMsg(dateStr);
-    addBotMsg("Houve advertências anteriores?");
-    setStep("previous_warnings_yn");
+    goToNextAfterReason();
   };
 
   const submitCustomReason = () => {
     if (!reason.trim()) return;
     addUserMsg(reason);
-    addBotMsg("Houve advertências anteriores?");
-    setStep("previous_warnings_yn");
+    goToNextAfterReason();
   };
 
-  const submitReason = () => {
-    if (!reason.trim()) return;
-    addUserMsg(reason);
-
+  const goToNextAfterReason = () => {
     if (docType === "suspension") {
-      addBotMsg("Data da falta mais recente? (deixe vazio para pular)");
-      setStep("recent_absence");
+      addBotMsg("Houve suspensões anteriores?");
+      setStep("previous_suspensions_yn");
     } else {
       addBotMsg("Houve advertências anteriores?");
       setStep("previous_warnings_yn");
     }
   };
+
 
   const submitRecentAbsence = () => {
     if (recentAbsence) addUserMsg(recentAbsence);
@@ -454,27 +449,13 @@ export function ChatbotFlow() {
             </div>
           )}
 
-          {step === "reason" && docType === "warning" && (
+          {step === "reason" && (
             <div className="flex flex-col gap-2">
-              <Button onClick={() => selectWarningReason("falta")} className="w-full">
+              <Button onClick={() => selectReason("falta")} className="w-full">
                 Falta Injustificada
               </Button>
-              <Button onClick={() => selectWarningReason("outro")} variant="secondary" className="w-full">
+              <Button onClick={() => selectReason("outro")} variant="secondary" className="w-full">
                 Outro motivo
-              </Button>
-            </div>
-          )}
-
-          {step === "reason" && docType === "suspension" && (
-            <div className="space-y-2">
-              <Textarea
-                placeholder="Descreva o motivo..."
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                className="min-h-[80px]"
-              />
-              <Button onClick={submitReason} disabled={!reason.trim()} className="w-full">
-                Enviar
               </Button>
             </div>
           )}
