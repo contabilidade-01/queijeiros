@@ -134,7 +134,7 @@ export function ChatbotFlow() {
 
   const FALTA_INJUSTIFICADA_TEXT = "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.";
 
-  const selectWarningReason = (type: "falta" | "outro") => {
+  const selectReason = (type: "falta" | "outro") => {
     if (type === "falta") {
       addUserMsg("Falta Injustificada");
       addBotMsg("Qual a data da falta?");
@@ -151,15 +151,23 @@ export function ChatbotFlow() {
     const dateFull = format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
     setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
     addUserMsg(dateStr);
-    addBotMsg("Houve advertências anteriores?");
-    setStep("previous_warnings_yn");
+    goToNextAfterReason();
   };
 
   const submitCustomReason = () => {
     if (!reason.trim()) return;
     addUserMsg(reason);
-    addBotMsg("Houve advertências anteriores?");
-    setStep("previous_warnings_yn");
+    goToNextAfterReason();
+  };
+
+  const goToNextAfterReason = () => {
+    if (docType === "suspension") {
+      addBotMsg("Houve suspensões anteriores?");
+      setStep("previous_suspensions_yn");
+    } else {
+      addBotMsg("Houve advertências anteriores?");
+      setStep("previous_warnings_yn");
+    }
   };
 
   const submitReason = () => {
