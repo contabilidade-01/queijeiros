@@ -198,14 +198,34 @@ export function WarningForm() {
             </Popover>
           </div>
           <div>
-            <Label htmlFor="w-reason">Motivo da Advertência *</Label>
-            <Textarea
-              id="w-reason"
-              placeholder="Descreva o motivo da advertência..."
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              className="mt-1 min-h-[100px]"
-            />
+            <Label>Motivo da Advertência *</Label>
+            <div className="mt-2 flex flex-col gap-2">
+              <Button
+                type="button"
+                variant={reason === "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." ? "default" : "outline"}
+                className="w-full justify-start text-left h-auto py-3 whitespace-normal"
+                onClick={() => setReason("Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.")}
+              >
+                Falta Injustificada
+              </Button>
+              <Button
+                type="button"
+                variant={reason !== "" && reason !== "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." ? "default" : "outline"}
+                className="w-full justify-start text-left h-auto py-3"
+                onClick={() => setReason("")}
+              >
+                Outro motivo
+              </Button>
+            </div>
+            {reason !== "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." && (
+              <Textarea
+                id="w-reason"
+                placeholder="Descreva o motivo da advertência..."
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                className="mt-2 min-h-[100px]"
+              />
+            )}
           </div>
         </CardContent>
       </Card>
