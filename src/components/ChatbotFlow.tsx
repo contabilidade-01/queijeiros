@@ -193,8 +193,8 @@ export function ChatbotFlow() {
   const submitThirdSuspension = (value: boolean) => {
     setIsThirdSuspension(value);
     addUserMsg(value ? "Sim, é a 3ª suspensão" : "Não");
-    addBotMsg("Houve advertências anteriores? Adicione ou clique em Pular.");
-    setStep("previous_warnings");
+    addBotMsg("Houve advertências anteriores?");
+    setStep("previous_warnings_yn");
   };
 
   const goToAbsences = () => {
