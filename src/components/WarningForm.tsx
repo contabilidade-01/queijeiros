@@ -204,22 +204,56 @@ export function WarningForm() {
             <div className="mt-2 flex flex-col gap-2">
               <Button
                 type="button"
-                variant={reason === "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." ? "default" : "outline"}
+                variant={reasonType === "falta" ? "default" : "outline"}
                 className="w-full justify-start text-left h-auto py-3 whitespace-normal"
-                onClick={() => setReason("Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.")}
+                onClick={() => {
+                  setReasonType("falta");
+                  if (faltaDate) {
+                    const dateFull = format(faltaDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+                    setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+                  }
+                }}
               >
                 Falta Injustificada
               </Button>
               <Button
                 type="button"
-                variant={reason !== "" && reason !== "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." ? "default" : "outline"}
+                variant={reasonType === "outro" ? "default" : "outline"}
                 className="w-full justify-start text-left h-auto py-3"
-                onClick={() => setReason("")}
+                onClick={() => { setReasonType("outro"); setReason(""); }}
               >
                 Outro motivo
               </Button>
             </div>
-            {reason !== "Falta injustificada ao serviço, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade." && (
+            {reasonType === "falta" && (
+              <div className="mt-3">
+                <Label>Data da Falta *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" className={cn("mt-1 w-full justify-start text-left font-normal", !faltaDate && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {faltaDate ? format(faltaDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecionar data da falta"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={faltaDate}
+                      onSelect={(d) => {
+                        setFaltaDate(d);
+                        if (d) {
+                          const dateFull = format(d, "dd 'de' MMMM 'de' yyyy", { locale: ptBR });
+                          setReason(`Falta injustificada ao serviço no dia ${dateFull}, sem apresentação de justificativa válida, em descumprimento às obrigações contratuais e ao dever de assiduidade.`);
+                        }
+                      }}
+                      locale={ptBR}
+                      className="p-3 pointer-events-auto"
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+            {reasonType === "outro" && (
               <Textarea
                 id="w-reason"
                 placeholder="Descreva o motivo da advertência..."
