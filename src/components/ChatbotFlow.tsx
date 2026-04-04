@@ -500,7 +500,7 @@ export function ChatbotFlow() {
                   onKeyDown={(e) => e.key === "Enter" && addListItem(previousSuspensions, setPreviousSuspensions)}
                   className="flex-1"
                 />
-                <Button size="icon" variant="outline" onClick={() => addListItem(previousSuspensions, setPreviousSuspensions)}>
+                <Button size="icon" variant={tempInput.trim() ? "default" : "outline"} onClick={() => addListItem(previousSuspensions, setPreviousSuspensions)}>
                   <Plus className="h-4 w-4" />
                 </Button>
               </div>
@@ -516,7 +516,7 @@ export function ChatbotFlow() {
                   ))}
                 </div>
               )}
-              <Button onClick={goToThirdSuspension} variant="secondary" className="w-full">
+              <Button onClick={goToThirdSuspension} variant={previousSuspensions.length > 0 ? "default" : "secondary"} className="w-full">
                 {previousSuspensions.length > 0 ? "Continuar" : "Pular"}
               </Button>
             </div>
