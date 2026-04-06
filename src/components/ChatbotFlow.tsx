@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { downloadSuspensionDoc, type SuspensionData } from "@/lib/generateSuspensionDoc";
 import { downloadWarningDoc, type WarningData } from "@/lib/generateWarningDoc";
 import { toast } from "sonner";
@@ -72,15 +72,7 @@ export function ChatbotFlow() {
 
   useEffect(() => {
     if (company) {
-      supabase
-        .from("employees")
-        .select("id, name, cpf, pis")
-        .eq("company_id", company.id)
-        .eq("active", true)
-        .order("name")
-        .then(({ data }) => {
-          if (data) setEmployees(data);
-        });
+      api.employees.list(company.id).then((data) => setEmployees(data));
     }
   }, [company]);
 
@@ -296,7 +288,7 @@ export function ChatbotFlow() {
         await downloadSuspensionDoc(data);
         const endDate = addDays(startDate, days - 1);
         const returnDate = addDays(endDate, 1);
-        await supabase.from("issued_documents").insert({
+        await api.documents.create({
           document_type: "suspension",
           employee_name: selectedEmployee.name,
           employee_cpf: selectedEmployee.cpf,
@@ -322,7 +314,7 @@ export function ChatbotFlow() {
           unjustifiedAbsences,
         };
         await downloadWarningDoc(data);
-        await supabase.from("issued_documents").insert({
+        await api.documents.create({
           document_type: "warning",
           employee_name: selectedEmployee.name,
           employee_cpf: selectedEmployee.cpf,
