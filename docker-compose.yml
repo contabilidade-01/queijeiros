@@ -23,6 +23,7 @@ services:
       DB_NAME: rhapp
       DB_USER: rhapp
       DB_PASSWORD: ${DB_PASSWORD:-changeme}
+      JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
       PORT: 3001
       UPLOAD_DIR: /app/uploads
     volumes:

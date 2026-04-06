@@ -3,29 +3,43 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const db = require("../db");
+const { authMiddleware } = require("../middleware/auth");
+const { validateUUID, validateDate, validateString } = require("../middleware/validate");
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "/app/uploads";
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
+  filename: (_req, file, cb) => {
+    // Sanitize filename
+    const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_");
+    cb(null, `${Date.now()}-${safeName}`);
+  },
 });
 const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 
+router.use(authMiddleware);
+
 router.get("/", async (req, res) => {
   try {
-    const { company_id, start_date, end_date } = req.query;
-    if (!company_id) return res.status(400).json({ error: "company_id obrigatório" });
+    const companyId = req.company.id;
+    const { start_date, end_date } = req.query;
 
     let sql = `SELECT mc.*, e.name as employee_name 
                FROM medical_certificates mc 
                JOIN employees e ON mc.employee_id = e.id 
                WHERE mc.company_id = $1`;
-    const params = [company_id];
+    const params = [companyId];
 
-    if (start_date) { params.push(start_date); sql += ` AND mc.certificate_date >= $${params.length}`; }
-    if (end_date) { params.push(end_date); sql += ` AND mc.certificate_date <= $${params.length}`; }
+    if (start_date) {
+      if (!validateDate(start_date)) return res.status(400).json({ error: "Data início inválida" });
+      params.push(start_date); sql += ` AND mc.certificate_date >= $${params.length}`;
+    }
+    if (end_date) {
+      if (!validateDate(end_date)) return res.status(400).json({ error: "Data fim inválida" });
+      params.push(end_date); sql += ` AND mc.certificate_date <= $${params.length}`;
+    }
 
     sql += " ORDER BY mc.certificate_date DESC";
     const { rows } = await db.query(sql, params);
@@ -38,14 +52,32 @@ router.get("/", async (req, res) => {
 
 router.post("/", upload.single("file"), async (req, res) => {
   try {
-    const { company_id, employee_id, certificate_date, notes } = req.body;
+    const companyId = req.company.id;
+    const { employee_id, certificate_date, notes } = req.body;
     const file = req.file;
+
     if (!file) return res.status(400).json({ error: "Arquivo obrigatório" });
+    if (!employee_id || !validateUUID(employee_id)) {
+      return res.status(400).json({ error: "employee_id inválido" });
+    }
+    if (certificate_date && !validateDate(certificate_date)) {
+      return res.status(400).json({ error: "Data inválida" });
+    }
+    if (notes && !validateString(notes, 1, 1000)) {
+      return res.status(400).json({ error: "Notas muito longas (máx 1000)" });
+    }
+
+    // Verify employee belongs to this company
+    const empCheck = await db.query("SELECT id FROM employees WHERE id=$1 AND company_id=$2", [employee_id, companyId]);
+    if (!empCheck.rows.length) {
+      return res.status(403).json({ error: "Funcionário não pertence à sua empresa" });
+    }
 
     const { rows } = await db.query(
       `INSERT INTO medical_certificates (company_id, employee_id, file_path, file_name, certificate_date, notes)
        VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [company_id, employee_id, file.filename, file.originalname, certificate_date || new Date().toISOString().slice(0, 10), notes || null]
+      [companyId, employee_id, file.filename, file.originalname,
+       certificate_date || new Date().toISOString().slice(0, 10), notes || null]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -55,16 +87,31 @@ router.post("/", upload.single("file"), async (req, res) => {
 });
 
 router.get("/file/:filename", (req, res) => {
-  const filePath = path.join(UPLOAD_DIR, req.params.filename);
+  // Path traversal protection
+  const filename = path.basename(req.params.filename);
+  const filePath = path.resolve(UPLOAD_DIR, filename);
+
+  if (!filePath.startsWith(path.resolve(UPLOAD_DIR))) {
+    return res.status(403).json({ error: "Acesso negado" });
+  }
+
   if (!fs.existsSync(filePath)) return res.status(404).json({ error: "Arquivo não encontrado" });
   res.sendFile(filePath);
 });
 
 router.delete("/:id", async (req, res) => {
   try {
-    const { rows } = await db.query("DELETE FROM medical_certificates WHERE id=$1 RETURNING file_path", [req.params.id]);
+    const companyId = req.company.id;
+    if (!validateUUID(req.params.id)) {
+      return res.status(400).json({ error: "ID inválido" });
+    }
+    const { rows } = await db.query(
+      "DELETE FROM medical_certificates WHERE id=$1 AND company_id=$2 RETURNING file_path",
+      [req.params.id, companyId]
+    );
+    if (!rows.length) return res.status(404).json({ error: "Atestado não encontrado" });
     if (rows[0]?.file_path) {
-      const fp = path.join(UPLOAD_DIR, rows[0].file_path);
+      const fp = path.join(UPLOAD_DIR, path.basename(rows[0].file_path));
       if (fs.existsSync(fp)) fs.unlinkSync(fp);
     }
     res.json({ ok: true });

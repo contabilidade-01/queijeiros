@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 
 interface CompanySession {
   id: string;
   name: string;
   cnpj: string;
+  token: string;
 }
 
 const STORAGE_KEY = "company_session";
