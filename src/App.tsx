@@ -11,6 +11,7 @@ import WarningPage from "./pages/WarningPage.tsx";
 import HistoryPage from "./pages/HistoryPage.tsx";
 import EmployeesPage from "./pages/EmployeesPage.tsx";
 import ChatbotPage from "./pages/ChatbotPage.tsx";
+import CertificatesPage from "./pages/CertificatesPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const AppRoutes = () => (
     <Route path="/historico" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
     <Route path="/funcionarios" element={<ProtectedRoute><EmployeesPage /></ProtectedRoute>} />
     <Route path="/chatbot" element={<ProtectedRoute><ChatbotPage /></ProtectedRoute>} />
+    <Route path="/atestados" element={<ProtectedRoute><CertificatesPage /></ProtectedRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

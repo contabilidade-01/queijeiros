@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FileText, AlertTriangle, History, ChevronRight, Users, MessageSquare, LogOut } from "lucide-react";
+import { FileText, AlertTriangle, History, ChevronRight, Users, MessageSquare, LogOut, ClipboardList } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -32,6 +32,13 @@ const menuItems = [
     icon: Users,
     path: "/funcionarios",
     color: "bg-secondary text-secondary-foreground",
+  },
+  {
+    title: "Atestados",
+    description: "Gestão de atestados médicos",
+    icon: ClipboardList,
+    path: "/atestados",
+    color: "bg-accent text-accent-foreground",
   },
   {
     title: "Histórico",
