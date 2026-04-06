@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS employees (
 
 CREATE TABLE IF NOT EXISTS issued_documents (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  document_type TEXT NOT NULL,
+  document_type TEXT NOT NULL CHECK (document_type IN ('suspension', 'warning')),
   employee_name TEXT NOT NULL,
   employee_cpf TEXT NOT NULL,
   employee_pis TEXT,
