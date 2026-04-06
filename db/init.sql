@@ -51,5 +51,5 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
 INSERT INTO companies (name, cnpj, password_hash) VALUES (
   'Checkar Segurança do App',
   '26786637000149',
-  '$2a$10$8K1p/a5r6VFH5vTqVU0KOeJ3bO0nBqQGzCm5G7Yv5QGq1jZ3K1Xhm'
+  '$2b$10$q6/eVHFHFpYxlKaHDJmPueM9cyw/Qw.GNm8.53XDWuvxWhpKGt9kq'
 ) ON CONFLICT (cnpj) DO NOTHING;
