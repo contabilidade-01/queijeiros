@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { maskCPF, maskPIS } from "@/lib/masks";
@@ -23,29 +23,18 @@ const EmployeesPage = () => {
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employees", company?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("*")
-        .eq("company_id", company!.id)
-        .eq("active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.employees.list(company!.id),
     enabled: !!company,
   });
 
   const addMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.from("employees").insert({
+    mutationFn: () =>
+      api.employees.create({
         company_id: company!.id,
         name: name.trim().toUpperCase(),
         cpf: cpf.trim(),
         pis: pis.trim() || null,
-      });
-      if (error) throw error;
-    },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       setShowAdd(false);
@@ -58,13 +47,12 @@ const EmployeesPage = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("employees")
-        .update({ name: name.trim().toUpperCase(), cpf: cpf.trim(), pis: pis.trim() || null })
-        .eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) =>
+      api.employees.update(id, {
+        name: name.trim().toUpperCase(),
+        cpf: cpf.trim(),
+        pis: pis.trim() || null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       setEditingId(null);
@@ -77,10 +65,7 @@ const EmployeesPage = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("employees").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => api.employees.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       toast.success("Funcionário removido");
