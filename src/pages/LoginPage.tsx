@@ -26,8 +26,8 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      const { company } = await api.auth.login(cnpj, password);
-      login({ id: company.id, name: company.name, cnpj: company.cnpj });
+      const { token, company } = await api.auth.login(cnpj, password);
+      login({ id: company.id, name: company.name, cnpj: company.cnpj, token });
       toast.success(`Bem-vindo! ${company.name}`);
       navigate("/");
     } catch (err: any) {
