@@ -21,6 +21,7 @@ export type Database = {
           id: string
           name: string
           password: string
+          password_hash: string | null
         }
         Insert: {
           cnpj: string
@@ -28,6 +29,7 @@ export type Database = {
           id?: string
           name: string
           password: string
+          password_hash?: string | null
         }
         Update: {
           cnpj?: string
@@ -35,6 +37,7 @@ export type Database = {
           id?: string
           name?: string
           password?: string
+          password_hash?: string | null
         }
         Relationships: []
       }
@@ -72,6 +75,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
         ]
@@ -130,6 +140,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "issued_documents_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       medical_certificates: {
@@ -172,6 +189,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "medical_certificates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "medical_certificates_employee_id_fkey"
             columns: ["employee_id"]
             isOneToOne: false
@@ -182,10 +206,30 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      companies_public: {
+        Row: {
+          cnpj: string | null
+          id: string | null
+          name: string | null
+        }
+        Insert: {
+          cnpj?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Update: {
+          cnpj?: string | null
+          id?: string | null
+          name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      verify_password: {
+        Args: { _hash: string; _password: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

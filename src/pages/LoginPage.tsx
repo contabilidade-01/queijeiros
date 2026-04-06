@@ -26,37 +26,17 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      // Try exact match first, then try formatted CNPJ
-      let query = supabase.from("companies").select("id, name, cnpj, password");
-      const { data: exactData } = await query.eq("cnpj", cnpj).single();
-      
-      let data = exactData;
-      if (!data) {
-        // Format raw digits to XX.XXX.XXX/XXXX-XX
-        const digits = cnpj.replace(/\D/g, "");
-        if (digits.length === 14) {
-          const formatted = `${digits.slice(0,2)}.${digits.slice(2,5)}.${digits.slice(5,8)}/${digits.slice(8,12)}-${digits.slice(12)}`;
-          const { data: fmtData } = await supabase
-            .from("companies")
-            .select("id, name, cnpj, password")
-            .eq("cnpj", formatted)
-            .single();
-          data = fmtData;
-        }
-      }
+      const { data, error } = await supabase.functions.invoke("company-login", {
+        body: { cnpj, password },
+      });
 
-      if (!data) {
-        toast.error("Empresa não encontrada");
+      if (error || !data?.company) {
+        toast.error(data?.error || "Erro ao fazer login");
         return;
       }
 
-      if (data.password !== password) {
-        toast.error("Senha incorreta");
-        return;
-      }
-
-      login({ id: data.id, name: data.name, cnpj: data.cnpj });
-      toast.success(`Bem-vindo! ${data.name}`);
+      login({ id: data.company.id, name: data.company.name, cnpj: data.company.cnpj });
+      toast.success(`Bem-vindo! ${data.company.name}`);
       navigate("/");
     } catch {
       toast.error("Erro ao fazer login");
