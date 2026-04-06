@@ -132,6 +132,54 @@ export type Database = {
           },
         ]
       }
+      medical_certificates: {
+        Row: {
+          certificate_date: string
+          company_id: string
+          created_at: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          id: string
+          notes: string | null
+        }
+        Insert: {
+          certificate_date?: string
+          company_id: string
+          created_at?: string
+          employee_id: string
+          file_name: string
+          file_path: string
+          id?: string
+          notes?: string | null
+        }
+        Update: {
+          certificate_date?: string
+          company_id?: string
+          created_at?: string
+          employee_id?: string
+          file_name?: string
+          file_path?: string
+          id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_certificates_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_certificates_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
