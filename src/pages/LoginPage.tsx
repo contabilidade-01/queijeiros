@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -26,20 +26,12 @@ const LoginPage = () => {
 
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("company-login", {
-        body: { cnpj, password },
-      });
-
-      if (error || !data?.company) {
-        toast.error(data?.error || "Erro ao fazer login");
-        return;
-      }
-
-      login({ id: data.company.id, name: data.company.name, cnpj: data.company.cnpj });
-      toast.success(`Bem-vindo! ${data.company.name}`);
+      const { company } = await api.auth.login(cnpj, password);
+      login({ id: company.id, name: company.name, cnpj: company.cnpj });
+      toast.success(`Bem-vindo! ${company.name}`);
       navigate("/");
-    } catch {
-      toast.error("Erro ao fazer login");
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao fazer login");
     } finally {
       setLoading(false);
     }

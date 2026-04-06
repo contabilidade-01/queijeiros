@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -17,27 +17,12 @@ const HistoryPage = () => {
 
   const { data: documents, isLoading } = useQuery({
     queryKey: ["issued-documents", company?.id],
-    queryFn: async () => {
-      const query = supabase
-        .from("issued_documents")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (company?.id) {
-        query.eq("company_id", company.id);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.documents.list(company!.id),
+    enabled: !!company,
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("issued_documents").delete().eq("id", id);
-      if (error) throw error;
-    },
+    mutationFn: (id: string) => api.documents.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["issued-documents"] });
       toast.success("Documento removido");

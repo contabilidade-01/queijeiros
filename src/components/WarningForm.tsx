@@ -14,7 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { downloadWarningDoc, type WarningData } from "@/lib/generateWarningDoc";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { maskPIS } from "@/lib/masks";
@@ -47,15 +47,7 @@ export function WarningForm() {
 
   useEffect(() => {
     if (company) {
-      supabase
-        .from("employees")
-        .select("id, name, cpf, pis")
-        .eq("company_id", company.id)
-        .eq("active", true)
-        .order("name")
-        .then(({ data }) => {
-          if (data) setEmployees(data);
-        });
+      api.employees.list(company.id).then((data) => setEmployees(data));
     }
   }, [company]);
 
@@ -99,7 +91,7 @@ export function WarningForm() {
     try {
       await downloadWarningDoc(data);
 
-      await supabase.from("issued_documents").insert({
+      await api.documents.create({
         document_type: "warning",
         employee_name: selectedEmployee.name,
         employee_cpf: selectedEmployee.cpf,

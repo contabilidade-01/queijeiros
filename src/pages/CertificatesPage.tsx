@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -41,16 +41,7 @@ const CertificatesPage = () => {
 
   const { data: employees } = useQuery({
     queryKey: ["employees", company?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("employees")
-        .select("id, name, cpf")
-        .eq("company_id", company!.id)
-        .eq("active", true)
-        .order("name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () => api.employees.list(company!.id),
     enabled: !!company,
   });
 
@@ -59,16 +50,11 @@ const CertificatesPage = () => {
     queryFn: async () => {
       const startDate = new Date(Number(filterYear), Number(filterMonth), 1);
       const endDate = new Date(Number(filterYear), Number(filterMonth) + 1, 0);
-
-      const { data, error } = await supabase
-        .from("medical_certificates")
-        .select("*, employees(name, cpf)")
-        .eq("company_id", company!.id)
-        .gte("certificate_date", format(startDate, "yyyy-MM-dd"))
-        .lte("certificate_date", format(endDate, "yyyy-MM-dd"))
-        .order("certificate_date", { ascending: false });
-      if (error) throw error;
-      return data;
+      return api.certificates.list(
+        company!.id,
+        format(startDate, "yyyy-MM-dd"),
+        format(endDate, "yyyy-MM-dd")
+      );
     },
     enabled: !!company,
   });
@@ -90,27 +76,14 @@ const CertificatesPage = () => {
 
     setUploading(true);
     try {
-      const date = new Date(certificateDate);
-      const monthFolder = format(date, "yyyy-MM");
-      const ext = previewFile.name.split(".").pop() || "jpg";
-      const fileName = `${company.id}/${monthFolder}/${selectedEmployee}_${Date.now()}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", previewFile);
+      formData.append("company_id", company.id);
+      formData.append("employee_id", selectedEmployee);
+      formData.append("certificate_date", certificateDate);
+      if (notes.trim()) formData.append("notes", notes.trim());
 
-      const { error: uploadError } = await supabase.storage
-        .from("atestados")
-        .upload(fileName, previewFile);
-
-      if (uploadError) throw uploadError;
-
-      const { error: dbError } = await supabase.from("medical_certificates").insert({
-        company_id: company.id,
-        employee_id: selectedEmployee,
-        file_path: fileName,
-        file_name: previewFile.name,
-        certificate_date: certificateDate,
-        notes: notes.trim() || null,
-      });
-
-      if (dbError) throw dbError;
+      await api.certificates.upload(formData);
 
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
       toast.success("Atestado salvo com sucesso!");
@@ -124,11 +97,7 @@ const CertificatesPage = () => {
   };
 
   const deleteMutation = useMutation({
-    mutationFn: async (cert: { id: string; file_path: string }) => {
-      await supabase.storage.from("atestados").remove([cert.file_path]);
-      const { error } = await supabase.from("medical_certificates").delete().eq("id", cert.id);
-      if (error) throw error;
-    },
+    mutationFn: (cert: { id: string }) => api.certificates.delete(cert.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
       toast.success("Atestado removido");
@@ -143,11 +112,6 @@ const CertificatesPage = () => {
     setPreviewFile(null);
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
-  };
-
-  const getPublicUrl = (path: string) => {
-    const { data } = supabase.storage.from("atestados").getPublicUrl(path);
-    return data.publicUrl;
   };
 
   const employeeName = (empId: string) => {
@@ -326,7 +290,7 @@ const CertificatesPage = () => {
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate flex items-center gap-1">
                       <User className="h-3 w-3" />
-                      {(cert as any).employees?.name || "—"}
+                      {cert.employee_name || employeeName(cert.employee_id)}
                     </p>
                     <p className="text-xs text-muted-foreground flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
@@ -339,7 +303,7 @@ const CertificatesPage = () => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8"
-                      onClick={() => window.open(getPublicUrl(cert.file_path), "_blank")}
+                      onClick={() => window.open(api.certificates.fileUrl(cert.file_path), "_blank")}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
@@ -347,7 +311,7 @@ const CertificatesPage = () => {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                      onClick={() => deleteMutation.mutate({ id: cert.id, file_path: cert.file_path })}
+                      onClick={() => deleteMutation.mutate({ id: cert.id })}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
