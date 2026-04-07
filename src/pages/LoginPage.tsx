@@ -5,7 +5,7 @@ import { maskCNPJ, maskCPF } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -99,13 +99,16 @@ const LoginPage = () => {
               <LogIn className="h-5 w-5" />
               {loading ? "Entrando..." : "Entrar"}
             </Button>
-            <p className="text-center text-sm">
-              <Link to="/forgot-password" className="text-primary underline-offset-4 hover:underline">
-                Esqueci minha senha
-              </Link>
-            </p>
           </form>
         </CardContent>
+        <CardFooter className="flex flex-col border-t px-6 pb-6 pt-4">
+          <Link
+            to="/forgot-password"
+            className="text-center text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            Esqueci minha senha
+          </Link>
+        </CardFooter>
       </Card>
     </div>
   );
