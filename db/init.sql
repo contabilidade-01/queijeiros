@@ -9,6 +9,14 @@ CREATE TABLE IF NOT EXISTS companies (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Administrador global (login = CPF só dígitos; senha definida no seed)
+CREATE TABLE IF NOT EXISTS platform_admins (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  cpf TEXT UNIQUE NOT NULL,
+  password_hash TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS employees (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id UUID NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
@@ -45,6 +53,11 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
   notes TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+INSERT INTO platform_admins (cpf, password_hash) VALUES (
+  '05487541523',
+  '$2a$10$P0E31oAGRjfkNOUZrd5.K..Wch43XC1WcK3HLiSYOQVK6DBlUbSaW'
+) ON CONFLICT (cpf) DO NOTHING;
 
 -- Seeds (login: CNPJ com/sem máscara; senha = CNPJ só dígitos).
 INSERT INTO companies (name, cnpj, password_hash) VALUES (

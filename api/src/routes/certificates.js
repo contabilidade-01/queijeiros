@@ -3,7 +3,7 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 const db = require("../db");
-const { authMiddleware } = require("../middleware/auth");
+const { authMiddleware, requireCompanyUser } = require("../middleware/auth");
 const { validateUUID, validateDate, validateString } = require("../middleware/validate");
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "/app/uploads";
@@ -23,14 +23,25 @@ router.use(authMiddleware);
 
 router.get("/", async (req, res) => {
   try {
-    const companyId = req.company.id;
     const { start_date, end_date } = req.query;
 
-    let sql = `SELECT mc.*, e.name as employee_name 
-               FROM medical_certificates mc 
-               JOIN employees e ON mc.employee_id = e.id 
-               WHERE mc.company_id = $1`;
-    const params = [companyId];
+    let sql;
+    const params = [];
+
+    if (req.isAdmin) {
+      sql = `SELECT mc.*, e.name AS employee_name, c.name AS company_name, c.cnpj AS company_cnpj
+             FROM medical_certificates mc
+             JOIN employees e ON mc.employee_id = e.id
+             JOIN companies c ON c.id = mc.company_id
+             WHERE 1=1`;
+    } else {
+      const companyId = req.company.id;
+      params.push(companyId);
+      sql = `SELECT mc.*, e.name AS employee_name 
+             FROM medical_certificates mc 
+             JOIN employees e ON mc.employee_id = e.id 
+             WHERE mc.company_id = $1`;
+    }
 
     if (start_date) {
       if (!validateDate(start_date)) return res.status(400).json({ error: "Data início inválida" });
@@ -50,7 +61,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", upload.single("file"), async (req, res) => {
+router.post("/", requireCompanyUser, upload.single("file"), async (req, res) => {
   try {
     const companyId = req.company.id;
     const { employee_id, certificate_date, notes } = req.body;
@@ -101,14 +112,24 @@ router.get("/file/:filename", (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const companyId = req.company.id;
     if (!validateUUID(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
     }
-    const { rows } = await db.query(
-      "DELETE FROM medical_certificates WHERE id=$1 AND company_id=$2 RETURNING file_path",
-      [req.params.id, companyId]
-    );
+    let rows;
+    if (req.isAdmin) {
+      const r = await db.query(
+        "DELETE FROM medical_certificates WHERE id=$1 RETURNING file_path",
+        [req.params.id]
+      );
+      rows = r.rows;
+    } else {
+      const companyId = req.company.id;
+      const r = await db.query(
+        "DELETE FROM medical_certificates WHERE id=$1 AND company_id=$2 RETURNING file_path",
+        [req.params.id, companyId]
+      );
+      rows = r.rows;
+    }
     if (!rows.length) return res.status(404).json({ error: "Atestado não encontrado" });
     if (rows[0]?.file_path) {
       const fp = path.join(UPLOAD_DIR, path.basename(rows[0].file_path));

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, Lock, LogIn } from "lucide-react";
-import { maskCNPJ } from "@/lib/masks";
+import { maskCNPJ, maskCPF } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,24 +11,41 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const LoginPage = () => {
-  const [cnpj, setCnpj] = useState("");
+  const [loginField, setLoginField] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
+  const handleLoginField = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    setLoginField(digits.length <= 11 ? maskCPF(digits) : maskCNPJ(digits));
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!cnpj || !password) {
-      toast.error("Preencha CNPJ e senha");
+    if (!loginField || !password) {
+      toast.error("Preencha login e senha");
       return;
     }
 
     setLoading(true);
     try {
-      const { token, company } = await api.auth.login(cnpj, password);
-      login({ id: company.id, name: company.name, cnpj: company.cnpj, token });
-      toast.success(`Bem-vindo! ${company.name}`);
+      const data = await api.auth.login(loginField, password);
+      if (data.role === "admin") {
+        login({ role: "admin", id: data.admin.id, cpf: data.admin.cpf, token: data.token });
+        toast.success("Painel administrador");
+        navigate("/admin");
+        return;
+      }
+      login({
+        role: "company",
+        id: data.company.id,
+        name: data.company.name,
+        cnpj: data.company.cnpj,
+        token: data.token,
+      });
+      toast.success(`Bem-vindo! ${data.company.name}`);
       navigate("/");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Erro ao fazer login";
@@ -47,21 +64,22 @@ const LoginPage = () => {
           </div>
           <CardTitle className="text-2xl">Gestão de Documentos</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Login com CNPJ (pode usar máscara) e senha com os números do CNPJ
+            Empresa: CNPJ + senha (geralmente o próprio CNPJ). Administrador: CPF + senha fornecida.
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label htmlFor="cnpj">CNPJ</Label>
+              <Label htmlFor="login">CNPJ da empresa ou CPF do administrador</Label>
               <div className="relative mt-1">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  id="cnpj"
-                  placeholder="00.000.000/0000-00"
-                  value={cnpj}
-                  onChange={(e) => setCnpj(maskCNPJ(e.target.value))}
+                  id="login"
+                  placeholder="00.000.000/0000-00 ou 000.000.000-00"
+                  value={loginField}
+                  onChange={(e) => handleLoginField(e.target.value)}
                   className="pl-10"
+                  autoComplete="username"
                 />
               </div>
             </div>
@@ -76,6 +94,7 @@ const LoginPage = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
+                  autoComplete="current-password"
                 />
               </div>
             </div>

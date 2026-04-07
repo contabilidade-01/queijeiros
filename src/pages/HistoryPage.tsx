@@ -12,13 +12,13 @@ import { toast } from "sonner";
 
 const HistoryPage = () => {
   const navigate = useNavigate();
-  const { company } = useAuth();
+  const { company, isAdmin, isLoggedIn } = useAuth();
   const queryClient = useQueryClient();
 
   const { data: documents, isLoading } = useQuery({
-    queryKey: ["issued-documents", company?.id],
-    queryFn: () => api.documents.list(company!.id),
-    enabled: !!company,
+    queryKey: ["issued-documents", isAdmin ? "all" : company?.id],
+    queryFn: () => api.documents.list(),
+    enabled: isLoggedIn && (!!company || isAdmin),
   });
 
   const deleteMutation = useMutation({
@@ -38,7 +38,9 @@ const HistoryPage = () => {
           </Button>
           <div>
             <h1 className="text-lg font-bold text-foreground">Histórico de Documentos</h1>
-            <p className="text-xs text-muted-foreground">{company?.name}</p>
+            <p className="text-xs text-muted-foreground">
+              {isAdmin ? "Visão global (admin)" : company?.name}
+            </p>
           </div>
         </div>
       </header>
@@ -78,6 +80,9 @@ const HistoryPage = () => {
                       )}
                     </div>
                     <p className="mt-1 font-medium text-foreground truncate">{doc.employee_name}</p>
+                    {isAdmin && (
+                      <p className="text-xs text-muted-foreground truncate">{doc.company_name} · CNPJ {doc.company_cnpj}</p>
+                    )}
                     <p className="text-xs text-muted-foreground">
                       CPF: {doc.employee_cpf}
                       {doc.employee_pis && ` • PIS: ${doc.employee_pis}`}

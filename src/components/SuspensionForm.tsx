@@ -96,8 +96,6 @@ export function SuspensionForm() {
     };
 
     try {
-      await downloadSuspensionDoc(data);
-
       await api.documents.create({
         document_type: "suspension",
         employee_name: selectedEmployee.name,
@@ -112,6 +110,7 @@ export function SuspensionForm() {
         description: `Suspensão de ${suspensionDays} dia(s)`,
       });
 
+      await downloadSuspensionDoc(data);
       toast.success("Documento gerado e salvo no histórico!");
     } catch {
       toast.error("Erro ao gerar documento");

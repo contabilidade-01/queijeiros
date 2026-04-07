@@ -285,7 +285,6 @@ export function ChatbotFlow() {
           unjustifiedAbsences,
           isThirdSuspension,
         };
-        await downloadSuspensionDoc(data);
         const endDate = addDays(startDate, days - 1);
         const returnDate = addDays(endDate, 1);
         await api.documents.create({
@@ -301,6 +300,7 @@ export function ChatbotFlow() {
           return_date: format(returnDate, "yyyy-MM-dd"),
           description: `Suspensão de ${days} dia(s)`,
         });
+        await downloadSuspensionDoc(data);
       } else {
         const data: WarningData = {
           employeeName: selectedEmployee.name,
@@ -313,7 +313,6 @@ export function ChatbotFlow() {
           previousWarnings,
           unjustifiedAbsences,
         };
-        await downloadWarningDoc(data);
         await api.documents.create({
           document_type: "warning",
           employee_name: selectedEmployee.name,
@@ -325,6 +324,7 @@ export function ChatbotFlow() {
           start_date: format(startDate, "yyyy-MM-dd"),
           description: reason.substring(0, 200),
         });
+        await downloadWarningDoc(data);
       }
 
       addUserMsg("✅ Confirmar");

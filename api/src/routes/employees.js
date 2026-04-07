@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const db = require("../db");
-const { authMiddleware } = require("../middleware/auth");
+const { authMiddleware, requireCompanyUser } = require("../middleware/auth");
 const { validateCPF, validateString, validateUUID } = require("../middleware/validate");
 
 // All routes require auth
@@ -8,7 +8,15 @@ router.use(authMiddleware);
 
 router.get("/", async (req, res) => {
   try {
-    // company_id comes from JWT, not query params
+    if (req.isAdmin) {
+      const { rows } = await db.query(
+        `SELECT e.*, c.name AS company_name, c.cnpj AS company_cnpj
+         FROM employees e
+         JOIN companies c ON c.id = e.company_id
+         ORDER BY c.name, e.name`
+      );
+      return res.json(rows);
+    }
     const companyId = req.company.id;
     const { rows } = await db.query(
       "SELECT * FROM employees WHERE company_id = $1 ORDER BY name",
@@ -21,7 +29,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", async (req, res) => {
+router.post("/", requireCompanyUser, async (req, res) => {
   try {
     const companyId = req.company.id;
     const { name, cpf, pis } = req.body;
@@ -47,7 +55,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-router.post("/import", async (req, res) => {
+router.post("/import", requireCompanyUser, async (req, res) => {
   const companyId = req.company.id;
   const companyCnpj = (req.company.cnpj || "").replace(/\D/g, "");
   const fileCnpj = (req.body?.fileCnpj || "").toString().replace(/\D/g, "");
@@ -120,7 +128,6 @@ router.post("/import", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   try {
-    const companyId = req.company.id;
     if (!validateUUID(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
     }
@@ -142,7 +149,17 @@ router.put("/:id", async (req, res) => {
 
     if (!sets.length) return res.status(400).json({ error: "Nenhum campo para atualizar" });
 
-    // Ensure employee belongs to this company
+    if (req.isAdmin) {
+      vals.push(req.params.id);
+      const { rows } = await db.query(
+        `UPDATE employees SET ${sets.join(",")} WHERE id=$${i} RETURNING *`,
+        vals
+      );
+      if (!rows.length) return res.status(404).json({ error: "Funcionário não encontrado" });
+      return res.json(rows[0]);
+    }
+
+    const companyId = req.company.id;
     vals.push(req.params.id);
     vals.push(companyId);
     const { rows } = await db.query(
@@ -159,10 +176,15 @@ router.put("/:id", async (req, res) => {
 
 router.delete("/:id", async (req, res) => {
   try {
-    const companyId = req.company.id;
     if (!validateUUID(req.params.id)) {
       return res.status(400).json({ error: "ID inválido" });
     }
+    if (req.isAdmin) {
+      const { rowCount } = await db.query("DELETE FROM employees WHERE id=$1", [req.params.id]);
+      if (!rowCount) return res.status(404).json({ error: "Funcionário não encontrado" });
+      return res.json({ ok: true });
+    }
+    const companyId = req.company.id;
     const { rowCount } = await db.query(
       "DELETE FROM employees WHERE id=$1 AND company_id=$2",
       [req.params.id, companyId]

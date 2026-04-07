@@ -35,6 +35,22 @@ Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o 
 | RESTAURANTE DO QUEIJEIRO 4 LTDA | `54803962000108` | `54803962000108` |
 | Gestão Empresa | `35736034000123` | `35736034000123` |
 
+### Administrador global
+
+| Perfil | Login (campo único) | Senha |
+|--------|---------------------|--------|
+| Administrador | CPF `05487541523` (com ou sem máscara) | `35736034000123` |
+
+O administrador acede ao painel `/admin` e vê **todas** as empresas, documentos emitidos, funcionários e atestados. Em bases **já existentes** (sem ter corrido o `init.sql` de novo), aplica também:
+
+```bash
+docker compose exec -T postgres psql -U rhapp -d rhapp < db/seed-platform-admin.sql
+```
+
+### Consola do Chrome no login
+
+Mensagens do tipo *"The message channel closed before a response was received"* costumam vir de **extensões do navegador** (tradutor, bloqueador, etc.), não da aplicação. Teste numa janela anónima sem extensões ou ignore se o login e a API funcionam.
+
 Se a BD já tinha sido criada antes deste seed, corre também **`db/seed-queijeiros-companies.sql`** uma vez no Postgres:
 
 ```bash

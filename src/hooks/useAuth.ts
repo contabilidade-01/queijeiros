@@ -1,33 +1,78 @@
 import { useState, useCallback } from "react";
 
-interface CompanySession {
+export type CompanySession = {
+  role: "company";
   id: string;
   name: string;
   cnpj: string;
   token: string;
-}
+};
+
+export type AdminSession = {
+  role: "admin";
+  id: string;
+  cpf: string;
+  token: string;
+};
+
+export type AuthSession = CompanySession | AdminSession;
 
 const STORAGE_KEY = "company_session";
 
-export function useAuth() {
-  const [company, setCompany] = useState<CompanySession | null>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
+function parseStored(): AuthSession | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
+    const o = JSON.parse(stored) as Record<string, unknown>;
+    if (!o?.token || typeof o.token !== "string") return null;
 
-  const login = useCallback((companyData: CompanySession) => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(companyData));
-    setCompany(companyData);
+    if (o.role === "admin" && typeof o.id === "string" && typeof o.cpf === "string") {
+      return { role: "admin", id: o.id, cpf: o.cpf, token: o.token };
+    }
+    if (
+      o.role === "company" &&
+      typeof o.id === "string" &&
+      typeof o.name === "string" &&
+      typeof o.cnpj === "string"
+    ) {
+      return { role: "company", id: o.id, name: o.name, cnpj: o.cnpj, token: o.token };
+    }
+
+    // Legado: sessão só de empresa sem campo role
+    if (
+      typeof o.id === "string" &&
+      typeof o.name === "string" &&
+      typeof o.cnpj === "string" &&
+      o.token
+    ) {
+      return { role: "company", id: o.id, name: o.name, cnpj: o.cnpj, token: o.token };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export function useAuth() {
+  const [session, setSession] = useState<AuthSession | null>(() => parseStored());
+
+  const login = useCallback((data: AuthSession) => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    setSession(data);
   }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem(STORAGE_KEY);
-    setCompany(null);
+    setSession(null);
   }, []);
 
-  return { company, isLoggedIn: !!company, login, logout };
+  return {
+    session,
+    company: session?.role === "company" ? session : null,
+    admin: session?.role === "admin" ? session : null,
+    isAdmin: session?.role === "admin",
+    isLoggedIn: !!session,
+    login,
+    logout,
+  };
 }

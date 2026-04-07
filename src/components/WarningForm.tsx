@@ -89,8 +89,6 @@ export function WarningForm() {
     };
 
     try {
-      await downloadWarningDoc(data);
-
       await api.documents.create({
         document_type: "warning",
         employee_name: selectedEmployee.name,
@@ -103,6 +101,7 @@ export function WarningForm() {
         description: reason.substring(0, 200),
       });
 
+      await downloadWarningDoc(data);
       toast.success("Advertência gerada e salva no histórico!");
     } catch {
       toast.error("Erro ao gerar documento");

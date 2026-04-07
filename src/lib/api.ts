@@ -37,21 +37,44 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json();
 }
 
+export type LoginResponse =
+  | { token: string; role: "admin"; admin: { id: string; cpf: string } }
+  | { token: string; role: "company"; company: { id: string; name: string; cnpj: string } };
+
 export const api = {
   auth: {
-    login: (cnpj: string, password: string) =>
-      request<{ token: string; company: { id: string; name: string; cnpj: string } }>("/auth/login", {
+    login: (login: string, password: string) =>
+      request<LoginResponse>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ cnpj, password }),
+        body: JSON.stringify({ login, password }),
       }),
+  },
+
+  admin: {
+    summary: () =>
+      request<{ companies: number; documents: number; employees: number; certificates: number }>(
+        "/admin/summary"
+      ),
+    companies: () =>
+      request<Array<{ id: string; name: string; cnpj: string; created_at: string }>>("/admin/companies"),
   },
 
   employees: {
     // No need for companyId param - server extracts from JWT
     list: (_companyId?: string) =>
-      request<Array<{ id: string; name: string; cpf: string; pis: string | null; active: boolean; company_id: string; created_at: string }>>(
-        `/employees`
-      ),
+      request<
+        Array<{
+          id: string;
+          name: string;
+          cpf: string;
+          pis: string | null;
+          active: boolean;
+          company_id: string;
+          created_at: string;
+          company_name?: string;
+          company_cnpj?: string;
+        }>
+      >(`/employees`),
     create: (data: { company_id?: string; name: string; cpf: string; pis?: string | null; active?: boolean }) =>
       request("/employees", { method: "POST", body: JSON.stringify(data) }),
     import: (
@@ -92,7 +115,7 @@ export const api = {
       return request<Array<{
         id: string; company_id: string; employee_id: string; file_path: string;
         file_name: string; certificate_date: string; notes: string | null;
-        created_at: string; employee_name?: string;
+        created_at: string; employee_name?: string; company_name?: string; company_cnpj?: string;
       }>>(url);
     },
     upload: async (formData: FormData) => {
