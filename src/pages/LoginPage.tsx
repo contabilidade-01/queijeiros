@@ -30,8 +30,9 @@ const LoginPage = () => {
       login({ id: company.id, name: company.name, cnpj: company.cnpj, token });
       toast.success(`Bem-vindo! ${company.name}`);
       navigate("/");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao fazer login");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao fazer login";
+      toast.error(message);
     } finally {
       setLoading(false);
     }

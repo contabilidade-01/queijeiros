@@ -25,7 +25,7 @@ Criar um sistema com login por CNPJ, cadastro de funcionários por empresa, e um
 ## Fluxo de Autenticação
 
 - Tela de login simples: campo CNPJ + Senha
-- Sem Supabase Auth — consulta direta na tabela `companies`
+- Autenticação via API Express (JWT): validação na tabela `companies`
 - Sessão armazenada em localStorage (company_id + company_name + cnpj)
 - Toda navegação protegida: se não logado, redireciona ao login
 
@@ -85,9 +85,8 @@ Cada etapa aparece como uma mensagem de chat, com a resposta do usuário abaixo.
 | `src/components/SuspensionForm.tsx` | Select de funcionário, dados auto |
 | `src/components/WarningForm.tsx` | Select de funcionário, dados auto |
 
-## Segurança (RLS)
+## Segurança (backend)
 
-- Companies: leitura pública (para login)
-- Employees: leitura/escrita pública (simplificado, sem Supabase Auth)
-- Issued_documents: manter políticas atuais
+- Rotas protegidas com JWT; `company_id` derivado do token
+- Postgres acessível apenas pela API (não exposto publicamente em produção)
 

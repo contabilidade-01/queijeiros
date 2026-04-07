@@ -1,0 +1,25 @@
+# Opcional: chama o "Deploy Webhook" do Easypanel em cada push na branch main.
+# GitHub → Settings → Secrets and variables → Actions → New repository secret:
+#   Name: EASYPANEL_DEPLOY_WEBHOOK
+#   Value: URL completa copiada do Easypanel (Deploy → Webhook).
+# Se o secret não existir, o job termina sem erro (skip).
+
+name: Trigger Easypanel deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST deploy webhook
+        env:
+          WEBHOOK: ${{ secrets.EASYPANEL_DEPLOY_WEBHOOK }}
+        run: |
+          if [ -z "$WEBHOOK" ]; then
+            echo "Skip: defina o secret EASYPANEL_DEPLOY_WEBHOOK no repositório para ativar."
+            exit 0
+          fi
+          curl -fsS -m 120 -X POST "$WEBHOOK"
