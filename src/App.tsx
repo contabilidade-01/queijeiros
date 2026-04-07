@@ -13,6 +13,7 @@ import WarningPage from "./pages/WarningPage.tsx";
 import HistoryPage from "./pages/HistoryPage.tsx";
 import EmployeesPage from "./pages/EmployeesPage.tsx";
 import ChatbotPage from "./pages/ChatbotPage.tsx";
+import SalaryAdhocPage from "./pages/SalaryAdhocPage.tsx";
 import CertificatesPage from "./pages/CertificatesPage.tsx";
 import AdminPage from "./pages/AdminPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
@@ -52,6 +53,7 @@ const AppRoutes = () => (
     <Route path="/historico" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
     <Route path="/funcionarios" element={<CompanyOnlyRoute><EmployeesPage /></CompanyOnlyRoute>} />
     <Route path="/chatbot" element={<CompanyOnlyRoute><ChatbotPage /></CompanyOnlyRoute>} />
+    <Route path="/salario-avulso" element={<CompanyOnlyRoute><SalaryAdhocPage /></CompanyOnlyRoute>} />
     <Route path="/atestados" element={<CompanyOnlyRoute><CertificatesPage /></CompanyOnlyRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>

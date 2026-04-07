@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { FileText, AlertTriangle, History, ChevronRight, Users, MessageSquare, LogOut, ClipboardList } from "lucide-react";
+import { FileText, AlertTriangle, History, ChevronRight, Users, MessageSquare, LogOut, ClipboardList, Calculator } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
@@ -25,6 +25,13 @@ const menuItems = [
     icon: MessageSquare,
     path: "/chatbot",
     color: "bg-primary text-primary-foreground",
+  },
+  {
+    title: "Salário avulso",
+    description: "Cálculo proporcional (experiência / treino)",
+    icon: Calculator,
+    path: "/salario-avulso",
+    color: "bg-secondary text-secondary-foreground",
   },
   {
     title: "Funcionários",
