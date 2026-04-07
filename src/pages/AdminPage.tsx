@@ -267,8 +267,10 @@ const AdminPage = () => {
               <Building2 className="h-4 w-4" /> Filtrar listas por empresa
             </CardTitle>
             <p className="text-xs text-muted-foreground font-normal">
-              Afeta documentos, funcionários e atestados abaixo. &quot;Todas&quot; mostra o conjunto
-              completo.
+              Afeta também a <strong>gestão de dados da empresa</strong> (razão social, e-mail e telefone)
+              — só aparece uma empresa de cada vez. Documentos, funcionários e atestados seguem o mesmo
+              filtro. &quot;Todas&quot; mostra todas nas listas, mas não permite editar cadastro de empresa
+              (evita alterar outra por engano).
             </p>
           </CardHeader>
           <CardContent>
@@ -298,16 +300,36 @@ const AdminPage = () => {
               <Building2 className="h-4 w-4" /> Gestão de empresas
             </CardTitle>
             <CardDescription>
-              Para cada CNPJ: defina a <strong>razão social</strong> (nome no filtro e nos documentos novos),
-              e-mail de recuperação de senha e telefone. Alterar a razão social atualiza também o texto
-              guardado nos documentos já emitidos dessa empresa.
+              Escolha uma empresa em <strong>Filtrar listas por empresa</strong> acima. Só então pode
+              alterar a <strong>razão social</strong>, e-mail de recuperação e telefone{" "}
+              <em>dessa</em> empresa. Alterar a razão social atualiza também os documentos já emitidos
+              com o nome antigo.
             </CardDescription>
           </CardHeader>
-          <CardContent className="max-h-[32rem] overflow-y-auto space-y-4 text-sm">
-            {companies?.length ? (
-              companies.map((c) => <CompanyManageRow key={c.id} company={c} />)
+          <CardContent className="space-y-4 text-sm">
+            {!companies?.length ? (
+              <p className="text-muted-foreground text-sm">Nenhuma empresa cadastrada.</p>
+            ) : !adminCompanyFilter ? (
+              <div className="rounded-lg border border-dashed bg-muted/30 p-4 text-muted-foreground">
+                <p className="font-medium text-foreground">Selecione uma empresa no filtro</p>
+                <p className="mt-1 text-xs leading-relaxed">
+                  Com &quot;Todas as empresas&quot;, não mostramos o formulário de edição para não correr
+                  o risco de mudar dados da empresa errada. Escolha o CNPJ desejado no menu
+                  <strong> Filtrar listas por empresa</strong>.
+                </p>
+              </div>
             ) : (
-              <p className="text-muted-foreground text-sm">Nenhuma empresa</p>
+              (() => {
+                const selected = companies.find((c) => c.id === adminCompanyFilter);
+                if (!selected) {
+                  return (
+                    <p className="text-destructive text-sm">
+                      Empresa não encontrada. Escolha outra no filtro.
+                    </p>
+                  );
+                }
+                return <CompanyManageRow key={selected.id} company={selected} />;
+              })()
             )}
           </CardContent>
         </Card>
