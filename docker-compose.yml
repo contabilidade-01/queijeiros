@@ -51,8 +51,8 @@ services:
       args:
         VITE_API_URL: ${VITE_API_URL:-}
     restart: always
-    ports:
-      - "80:80"
+    # Não publicar 80 no host: evita conflito com o proxy do Easypanel. O domínio
+    # deve apontar para o serviço "frontend" na porta interna 80.
     expose:
       - "80"
     depends_on:
