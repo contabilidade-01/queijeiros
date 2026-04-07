@@ -61,11 +61,7 @@ Na tela **Funcionários**, use o botão **Importar CSV**:
 - Linhas com **data de demissão** preenchida **não são importadas** (demitidos ficam de fora).
 - Se o CPF já existir na mesma empresa, a linha é ignorada (evita duplicados).
 
-Para **apagar da base** funcionários já marcados como inativos (`active = false`), execute no Postgres:
-
-```bash
-docker compose exec -T postgres psql -U rhapp -d rhapp < db/delete-inactive-employees.sql
-```
+Funcionários **inativos** (`active = false`) são **removidos automaticamente** sempre que o contentor da **API** inicia (cada redeploy no Easypanel). O ficheiro `db/delete-inactive-employees.sql` serve só se quiser correr o mesmo `DELETE` manualmente no Postgres.
 
 ---
 

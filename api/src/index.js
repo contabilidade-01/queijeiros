@@ -4,6 +4,7 @@ const cors = require("cors");
 const path = require("path");
 const db = require("./db");
 const { ensurePlatformAdmins } = require("./ensurePlatformAdmins");
+const { deleteInactiveEmployeesOnStartup } = require("./deleteInactiveEmployeesOnStartup");
 
 const app = express();
 app.use(cors());
@@ -37,8 +38,9 @@ const PORT = process.env.PORT || 3001;
 async function start() {
   try {
     await ensurePlatformAdmins(db);
+    await deleteInactiveEmployeesOnStartup(db);
   } catch (err) {
-    console.error("ensurePlatformAdmins:", err.message);
+    console.error("Startup DB tasks:", err.message);
     throw err;
   }
   app.listen(PORT, () => console.log(`API running on port ${PORT}`));

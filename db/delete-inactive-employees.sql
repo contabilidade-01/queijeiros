@@ -1,5 +1,5 @@
--- Remove funcionários inativos da base atual.
--- medical_certificates com employee_id apontando para esses registros são apagados em cascata.
--- Documentos já emitidos (issued_documents) conservam nome/CPF em texto — não são apagados.
+-- Remove funcionários inativos (manual opcional).
+-- O mesmo DELETE corre automaticamente a cada arranque da API (redeploy).
+-- medical_certificates ligados apagam-se em cascata. issued_documents (texto) não são alterados.
 
 DELETE FROM employees WHERE active IS NOT TRUE;
