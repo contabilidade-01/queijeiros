@@ -21,6 +21,11 @@ const EmployeesPage = () => {
   const [cpf, setCpf] = useState("");
   const [pis, setPis] = useState("");
   const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [pendingImport, setPendingImport] = useState<{
+    fileName: string;
+    fileCnpj: string;
+    rows: Array<{ name: string; cpf: string; active: boolean }>;
+  } | null>(null);
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employees", company?.id],
@@ -78,6 +83,7 @@ const EmployeesPage = () => {
       api.employees.import(rows, fileCnpj),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
+      setPendingImport(null);
       toast.success(`Importação concluída: ${result.inserted} inseridos, ${result.skipped} ignorados`);
       if (result.errors.length) {
         toast.warning(`${result.errors.length} linhas com erro foram ignoradas`);
@@ -158,7 +164,11 @@ const EmployeesPage = () => {
         toast.error("Arquivo sem funcionários válidos para importar");
         return;
       }
-      importMutation.mutate({ rows, fileCnpj });
+      setPendingImport({
+        fileName: file.name,
+        fileCnpj,
+        rows,
+      });
     } finally {
       event.target.value = "";
     }
@@ -179,6 +189,15 @@ const EmployeesPage = () => {
     setCpf("");
     setPis("");
   };
+
+  const formatCnpj = (value: string): string =>
+    value
+      .replace(/\D/g, "")
+      .slice(0, 14)
+      .replace(/(\d{2})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1.$2")
+      .replace(/(\d{3})(\d)/, "$1/$2")
+      .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
 
   return (
     <div className="min-h-screen bg-background">
@@ -217,6 +236,33 @@ const EmployeesPage = () => {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 py-6 space-y-3">
+        {pendingImport && (
+          <Card className="border-primary/50">
+            <CardContent className="p-4 space-y-3">
+              <p className="text-sm font-medium">
+                Arquivo pronto para importar: <span className="text-primary">{pendingImport.fileName}</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                CNPJ detectado no arquivo: <strong>{formatCnpj(pendingImport.fileCnpj)}</strong> • Registros válidos:{" "}
+                <strong>{pendingImport.rows.length}</strong>
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  className="gap-2"
+                  onClick={() => importMutation.mutate({ rows: pendingImport.rows, fileCnpj: pendingImport.fileCnpj })}
+                  disabled={importMutation.isPending}
+                >
+                  <Upload className="h-4 w-4" />
+                  {importMutation.isPending ? "Importando..." : "Confirmar importação"}
+                </Button>
+                <Button variant="outline" onClick={() => setPendingImport(null)} disabled={importMutation.isPending}>
+                  Cancelar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {(showAdd || editingId) && (
           <Card className="border-primary/50">
             <CardContent className="p-4 space-y-3">
