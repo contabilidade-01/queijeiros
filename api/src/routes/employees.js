@@ -49,8 +49,16 @@ router.post("/", async (req, res) => {
 
 router.post("/import", async (req, res) => {
   const companyId = req.company.id;
+  const companyCnpj = (req.company.cnpj || "").replace(/\D/g, "");
+  const fileCnpj = (req.body?.fileCnpj || "").toString().replace(/\D/g, "");
   const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
 
+  if (!fileCnpj || fileCnpj.length !== 14) {
+    return res.status(400).json({ error: "CNPJ do arquivo não identificado" });
+  }
+  if (fileCnpj !== companyCnpj) {
+    return res.status(403).json({ error: "CNPJ do arquivo não corresponde à empresa logada" });
+  }
   if (!rows.length) {
     return res.status(400).json({ error: "Nenhum funcionário enviado para importação" });
   }

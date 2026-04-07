@@ -74,7 +74,8 @@ const EmployeesPage = () => {
   });
 
   const importMutation = useMutation({
-    mutationFn: (rows: Array<{ name: string; cpf: string; active?: boolean }>) => api.employees.import(rows),
+    mutationFn: ({ rows, fileCnpj }: { rows: Array<{ name: string; cpf: string; active?: boolean }>; fileCnpj: string }) =>
+      api.employees.import(rows, fileCnpj),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
       toast.success(`Importação concluída: ${result.inserted} inseridos, ${result.skipped} ignorados`);
@@ -84,6 +85,20 @@ const EmployeesPage = () => {
     },
     onError: () => toast.error("Erro ao importar funcionários"),
   });
+
+  const extractFileCnpj = (csv: string): string | null => {
+    const lines = csv.split(/\r?\n/);
+    for (const rawLine of lines.slice(0, 20)) {
+      const line = rawLine.trim();
+      if (!/cnpj/i.test(line)) continue;
+      const match = line.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
+      if (match) {
+        const digits = match[0].replace(/\D/g, "");
+        if (digits.length === 14) return digits;
+      }
+    }
+    return null;
+  };
 
   const parseEmployeesCsv = (csv: string): Array<{ name: string; cpf: string; active: boolean }> => {
     const lines = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -127,12 +142,23 @@ const EmployeesPage = () => {
 
     try {
       const text = await file.text();
+      const fileCnpj = extractFileCnpj(text);
+      if (!fileCnpj) {
+        toast.error("Não foi possível identificar o CNPJ no arquivo CSV");
+        return;
+      }
+      const currentCompanyCnpj = (company?.cnpj || "").replace(/\D/g, "");
+      if (!currentCompanyCnpj || fileCnpj !== currentCompanyCnpj) {
+        toast.error("Este arquivo é de outra empresa. Faça login no CNPJ correto para importar.");
+        return;
+      }
+
       const rows = parseEmployeesCsv(text);
       if (!rows.length) {
         toast.error("Arquivo sem funcionários válidos para importar");
         return;
       }
-      importMutation.mutate(rows);
+      importMutation.mutate({ rows, fileCnpj });
     } finally {
       event.target.value = "";
     }
