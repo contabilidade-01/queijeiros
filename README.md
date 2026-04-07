@@ -58,7 +58,7 @@ docker compose exec -T postgres psql -U rhapp -d rhapp < db/seed-queijeiros-comp
 Na tela **Funcionários**, use o botão **Importar CSV**:
 
 - O sistema lê `Nome` + `CPF` de arquivos com `;` (como "Relação de Empregados").
-- Se houver **data de demissão**, o funcionário entra como **inativo**.
+- Linhas com **data de demissão** preenchida **não são importadas** (demitidos ficam de fora).
 - Se o CPF já existir na mesma empresa, a linha é ignorada (evita duplicados).
 
 ---

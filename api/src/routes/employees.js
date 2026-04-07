@@ -88,7 +88,6 @@ router.post("/import", requireCompanyUser, async (req, res) => {
       const cpfRaw = (item.cpf || "").toString();
       const cpf = cpfRaw.replace(/\D/g, "");
       const pis = item.pis ? item.pis.toString().replace(/\D/g, "") : null;
-      const active = item.active === false ? false : true;
 
       if (!validateString(name, 2, 200) || !validateCPF(cpf)) {
         errors.push({ row: idx + 1, message: "Nome/CPF inválido" });
@@ -96,6 +95,10 @@ router.post("/import", requireCompanyUser, async (req, res) => {
       }
       if (pis && !validateString(pis, 1, 20)) {
         errors.push({ row: idx + 1, message: "PIS inválido" });
+        continue;
+      }
+      if (item.active === false) {
+        skipped += 1;
         continue;
       }
 
@@ -109,8 +112,8 @@ router.post("/import", requireCompanyUser, async (req, res) => {
       }
 
       await client.query(
-        "INSERT INTO employees (company_id, name, cpf, pis, active) VALUES ($1, $2, $3, $4, $5)",
-        [companyId, name, cpf, pis, active]
+        "INSERT INTO employees (company_id, name, cpf, pis, active) VALUES ($1, $2, $3, $4, true)",
+        [companyId, name, cpf, pis]
       );
       inserted += 1;
     }

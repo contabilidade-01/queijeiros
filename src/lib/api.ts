@@ -77,10 +77,7 @@ export const api = {
       >(`/employees`),
     create: (data: { company_id?: string; name: string; cpf: string; pis?: string | null; active?: boolean }) =>
       request("/employees", { method: "POST", body: JSON.stringify(data) }),
-    import: (
-      rows: Array<{ name: string; cpf: string; pis?: string | null; active?: boolean }>,
-      fileCnpj: string
-    ) =>
+    import: (rows: Array<{ name: string; cpf: string; pis?: string | null }>, fileCnpj: string) =>
       request<{ inserted: number; skipped: number; errors: Array<{ row: number; message: string }> }>("/employees/import", {
         method: "POST",
         body: JSON.stringify({ rows, fileCnpj }),

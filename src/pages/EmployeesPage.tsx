@@ -24,7 +24,8 @@ const EmployeesPage = () => {
   const [pendingImport, setPendingImport] = useState<{
     fileName: string;
     fileCnpj: string;
-    rows: Array<{ name: string; cpf: string; active: boolean }>;
+    rows: Array<{ name: string; cpf: string }>;
+    skippedDismissed: number;
   } | null>(null);
 
   const { data: employees, isLoading } = useQuery({
@@ -79,7 +80,7 @@ const EmployeesPage = () => {
   });
 
   const importMutation = useMutation({
-    mutationFn: ({ rows, fileCnpj }: { rows: Array<{ name: string; cpf: string; active?: boolean }>; fileCnpj: string }) =>
+    mutationFn: ({ rows, fileCnpj }: { rows: Array<{ name: string; cpf: string }>; fileCnpj: string }) =>
       api.employees.import(rows, fileCnpj),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["employees"] });
@@ -128,9 +129,11 @@ const EmployeesPage = () => {
     return null;
   };
 
-  const parseEmployeesCsv = (csv: string): Array<{ name: string; cpf: string; active: boolean }> => {
+  const parseEmployeesCsv = (csv: string): { rows: Array<{ name: string; cpf: string }>; skippedDismissed: number } => {
     const lines = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-    const parsed = new Map<string, { name: string; cpf: string; active: boolean }>();
+    const parsed = new Map<string, { name: string; cpf: string }>();
+    let skippedDismissed = 0;
+    const dismissalDate = /\d{2}\/\d{2}\/\d{4}/;
 
     for (const line of lines) {
       if (!line.includes(";")) continue;
@@ -148,7 +151,7 @@ const EmployeesPage = () => {
       }
       for (const part of parts) {
         if (part.replace(/\D/g, "").length === 11) continue;
-        if (/\d{2}\/\d{2}\/\d{4}/.test(part)) continue;
+        if (dismissalDate.test(part)) continue;
         if (/^situa/i.test(part)) continue;
         if (part.length >= 3) {
           name = part.replace(/\s+/g, " ").trim().toUpperCase();
@@ -157,11 +160,15 @@ const EmployeesPage = () => {
       }
 
       if (!cpf || !name) continue;
-      const active = !parts.some((part) => /\d{2}\/\d{2}\/\d{4}/.test(part));
-      parsed.set(cpf, { name, cpf, active });
+      // Com data de demissão no arquivo: não importa (não cadastra demitidos)
+      if (parts.some((part) => dismissalDate.test(part))) {
+        skippedDismissed += 1;
+        continue;
+      }
+      parsed.set(cpf, { name, cpf });
     }
 
-    return Array.from(parsed.values());
+    return { rows: Array.from(parsed.values()), skippedDismissed };
   };
 
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -181,15 +188,20 @@ const EmployeesPage = () => {
         return;
       }
 
-      const rows = parseEmployeesCsv(text);
+      const { rows, skippedDismissed } = parseEmployeesCsv(text);
       if (!rows.length) {
-        toast.error("Arquivo sem funcionários válidos para importar");
+        if (skippedDismissed > 0) {
+          toast.error("Nenhum funcionário ativo: todas as linhas tinham data de demissão ou dados inválidos");
+        } else {
+          toast.error("Arquivo sem funcionários válidos para importar");
+        }
         return;
       }
       setPendingImport({
         fileName: file.name,
         fileCnpj,
         rows,
+        skippedDismissed,
       });
     } finally {
       event.target.value = "";
@@ -265,8 +277,11 @@ const EmployeesPage = () => {
                 Arquivo pronto para importar: <span className="text-primary">{pendingImport.fileName}</span>
               </p>
               <p className="text-xs text-muted-foreground">
-                CNPJ detectado no arquivo: <strong>{formatCnpj(pendingImport.fileCnpj)}</strong> • Registros válidos:{" "}
+                CNPJ detectado no arquivo: <strong>{formatCnpj(pendingImport.fileCnpj)}</strong> • A importar:{" "}
                 <strong>{pendingImport.rows.length}</strong>
+                {pendingImport.skippedDismissed > 0 && (
+                  <> • <span className="text-amber-600 dark:text-amber-500">{pendingImport.skippedDismissed} com demissão (não importados)</span></>
+                )}
               </p>
               <div className="flex gap-2">
                 <Button
