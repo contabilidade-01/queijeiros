@@ -6,6 +6,9 @@ async function ensurePasswordResetSchema(db) {
     ALTER TABLE companies ADD COLUMN IF NOT EXISTS contact_email TEXT;
   `);
   await db.query(`
+    ALTER TABLE companies ADD COLUMN IF NOT EXISTS phone TEXT;
+  `);
+  await db.query(`
     ALTER TABLE platform_admins ADD COLUMN IF NOT EXISTS contact_email TEXT;
   `);
   await db.query(`

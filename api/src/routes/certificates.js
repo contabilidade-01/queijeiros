@@ -34,6 +34,14 @@ router.get("/", async (req, res) => {
              JOIN employees e ON mc.employee_id = e.id
              JOIN companies c ON c.id = mc.company_id
              WHERE 1=1`;
+      const filterCid = (req.query.company_id || "").toString();
+      if (filterCid) {
+        if (!validateUUID(filterCid)) {
+          return res.status(400).json({ error: "company_id inválido" });
+        }
+        params.push(filterCid);
+        sql += ` AND mc.company_id = $${params.length}`;
+      }
     } else {
       const companyId = req.company.id;
       params.push(companyId);

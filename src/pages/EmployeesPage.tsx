@@ -30,7 +30,7 @@ const EmployeesPage = () => {
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employees", company?.id],
-    queryFn: () => api.employees.list(company!.id),
+    queryFn: () => api.employees.list({ companyId: company!.id }),
     enabled: !!company,
   });
 

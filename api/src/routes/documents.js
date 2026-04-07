@@ -16,6 +16,17 @@ const DOC_TYPE_ALIASES = {
 router.get("/", async (req, res) => {
   try {
     if (req.isAdmin) {
+      const filterId = (req.query.company_id || "").toString();
+      if (filterId) {
+        if (!validateUUID(filterId)) {
+          return res.status(400).json({ error: "company_id inválido" });
+        }
+        const { rows } = await db.query(
+          "SELECT * FROM issued_documents WHERE company_id = $1 ORDER BY created_at DESC",
+          [filterId]
+        );
+        return res.json(rows);
+      }
       const { rows } = await db.query(
         "SELECT * FROM issued_documents ORDER BY created_at DESC"
       );

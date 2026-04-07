@@ -1,22 +1,41 @@
 import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Building2, ClipboardList, FileText, LayoutDashboard, Mail, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Building2,
+  ClipboardList,
+  FileText,
+  LayoutDashboard,
+  Mail,
+  Plus,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { maskCNPJ } from "@/lib/masks";
 
 const AdminPage = () => {
   const navigate = useNavigate();
   const { admin, logout } = useAuth();
   const queryClient = useQueryClient();
+
+  const [adminCompanyFilter, setAdminCompanyFilter] = useState<string>("");
 
   const { data: summary } = useQuery({
     queryKey: ["admin-summary"],
@@ -48,25 +67,62 @@ const AdminPage = () => {
     queryFn: () => api.admin.companies(),
   });
 
+  const listOpts = adminCompanyFilter ? { companyId: adminCompanyFilter } : undefined;
+
   const { data: documents, isLoading: loadingDocs } = useQuery({
-    queryKey: ["issued-documents", "all"],
-    queryFn: () => api.documents.list(),
+    queryKey: ["issued-documents", "admin", adminCompanyFilter || "all"],
+    queryFn: () => api.documents.list(listOpts),
   });
 
   const { data: employees, isLoading: loadingEmp } = useQuery({
-    queryKey: ["employees", "all"],
-    queryFn: () => api.employees.list(),
+    queryKey: ["employees", "admin", adminCompanyFilter || "all"],
+    queryFn: () => api.employees.list(listOpts),
   });
 
   const { data: certificates, isLoading: loadingCert } = useQuery({
-    queryKey: ["certificates", "all"],
-    queryFn: () => api.certificates.list(),
+    queryKey: ["certificates", "admin", adminCompanyFilter || "all"],
+    queryFn: () => api.certificates.list(listOpts),
   });
+
+  const [newCoName, setNewCoName] = useState("");
+  const [newCoCnpj, setNewCoCnpj] = useState("");
+  const [newCoEmail, setNewCoEmail] = useState("");
+  const [newCoPhone, setNewCoPhone] = useState("");
+
+  const createCompany = useMutation({
+    mutationFn: () =>
+      api.admin.createCompany({
+        name: newCoName.trim(),
+        cnpj: newCoCnpj,
+        contact_email: newCoEmail.trim() || null,
+        phone: newCoPhone.replace(/\D/g, "") || null,
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-summary"] });
+      toast.success(data.message);
+      setNewCoName("");
+      setNewCoCnpj("");
+      setNewCoEmail("");
+      setNewCoPhone("");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const handleNewCoCnpj = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 14);
+    setNewCoCnpj(maskCNPJ(digits));
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
+
+  const filterLabel =
+    adminCompanyFilter && companies
+      ? companies.find((c) => c.id === adminCompanyFilter)?.name ?? "empresa selecionada"
+      : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -125,6 +181,51 @@ const AdminPage = () => {
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Plus className="h-4 w-4" /> Nova empresa (CNPJ)
+            </CardTitle>
+            <p className="text-xs text-muted-foreground font-normal">
+              Cada CNPJ recebe <strong>acesso exclusivo</strong> à mesma aplicação: após login, vê só
+              funcionários, documentos e atestados da própria empresa (isolamento na base de dados por{" "}
+              <code className="text-xs">company_id</code>). Senha inicial = <strong>14 dígitos do CNPJ</strong>.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">Razão social / nome</Label>
+                <Input value={newCoName} onChange={(e) => setNewCoName(e.target.value)} placeholder="Nome da empresa" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">CNPJ</Label>
+                <Input value={newCoCnpj} onChange={(e) => handleNewCoCnpj(e.target.value)} placeholder="00.000.000/0000-00" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs">Telefone (opcional)</Label>
+                <Input value={newCoPhone} onChange={(e) => setNewCoPhone(e.target.value)} placeholder="DDD + número" />
+              </div>
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-xs">E-mail (recuperação de senha, opcional)</Label>
+                <Input
+                  type="email"
+                  value={newCoEmail}
+                  onChange={(e) => setNewCoEmail(e.target.value)}
+                  placeholder="contato@empresa.com"
+                />
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => createCompany.mutate()}
+              disabled={createCompany.isPending || !newCoName.trim() || newCoCnpj.replace(/\D/g, "").length !== 14}
+            >
+              Cadastrar empresa
+            </Button>
+          </CardContent>
+        </Card>
+
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card>
@@ -157,14 +258,42 @@ const AdminPage = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Empresas
+              <Building2 className="h-4 w-4" /> Filtrar listas por empresa
+            </CardTitle>
+            <p className="text-xs text-muted-foreground font-normal">
+              Afeta documentos, funcionários e atestados abaixo. &quot;Todas&quot; mostra o conjunto
+              completo.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <Select
+              value={adminCompanyFilter || "__all__"}
+              onValueChange={(v) => setAdminCompanyFilter(v === "__all__" ? "" : v)}
+            >
+              <SelectTrigger className="w-full sm:max-w-md">
+                <SelectValue placeholder="Empresa" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">Todas as empresas</SelectItem>
+                {companies?.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name} · {c.cnpj}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Building2 className="h-4 w-4" /> Empresas cadastradas
             </CardTitle>
           </CardHeader>
           <CardContent className="max-h-96 overflow-y-auto space-y-4 text-sm">
             {companies?.length ? (
-              companies.map((c) => (
-                <CompanyEmailRow key={c.id} company={c} />
-              ))
+              companies.map((c) => <CompanyManageRow key={c.id} company={c} />)
             ) : (
               <p className="text-muted-foreground text-sm">Nenhuma empresa</p>
             )}
@@ -174,7 +303,8 @@ const AdminPage = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Documentos emitidos (todas as empresas)
+              <FileText className="h-4 w-4" /> Documentos emitidos
+              {filterLabel ? ` · ${filterLabel}` : " · todas as empresas"}
             </CardTitle>
           </CardHeader>
           <CardContent className="max-h-72 overflow-y-auto space-y-2">
@@ -191,7 +321,8 @@ const AdminPage = () => {
                   </div>
                   <p className="font-medium mt-1">{doc.employee_name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {format(new Date(doc.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} · CNPJ {doc.company_cnpj}
+                    {format(new Date(doc.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })} · CNPJ{" "}
+                    {doc.company_cnpj}
                   </p>
                 </div>
               ))
@@ -204,7 +335,8 @@ const AdminPage = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4" /> Funcionários (todas as empresas)
+              <Users className="h-4 w-4" /> Funcionários
+              {filterLabel ? ` · ${filterLabel}` : " · todas as empresas"}
             </CardTitle>
           </CardHeader>
           <CardContent className="max-h-72 overflow-y-auto space-y-2 text-sm">
@@ -229,7 +361,8 @@ const AdminPage = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" /> Atestados (todas as empresas)
+              <ClipboardList className="h-4 w-4" /> Atestados
+              {filterLabel ? ` · ${filterLabel}` : " · todas as empresas"}
             </CardTitle>
           </CardHeader>
           <CardContent className="max-h-72 overflow-y-auto space-y-2 text-sm">
@@ -263,7 +396,7 @@ const AdminPage = () => {
   );
 };
 
-function CompanyEmailRow({
+function CompanyManageRow({
   company,
 }: {
   company: {
@@ -271,42 +404,53 @@ function CompanyEmailRow({
     name: string;
     cnpj: string;
     contact_email: string | null;
+    phone: string | null;
   };
 }) {
+  const [name, setName] = useState(company.name);
   const [email, setEmail] = useState(company.contact_email ?? "");
+  const [phone, setPhone] = useState(company.phone ?? "");
+
   useEffect(() => {
+    setName(company.name);
     setEmail(company.contact_email ?? "");
-  }, [company.contact_email]);
+    setPhone(company.phone ?? "");
+  }, [company.name, company.contact_email, company.phone]);
+
   const queryClient = useQueryClient();
 
   const mut = useMutation({
     mutationFn: () =>
-      api.admin.updateCompanyContactEmail(company.id, email.trim() ? email.trim().toLowerCase() : null),
+      api.admin.updateCompany(company.id, {
+        name: name.trim(),
+        contact_email: email.trim() ? email.trim().toLowerCase() : null,
+        phone: phone.replace(/\D/g, "") ? phone.replace(/\D/g, "") : null,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
-      toast.success(`E-mail de ${company.name} atualizado`);
+      toast.success(`Dados de ${name.trim()} atualizados`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
     <div className="border-b border-border/50 pb-3 last:border-0 space-y-2">
-      <div className="flex flex-wrap justify-between gap-2">
-        <span className="font-medium truncate">{company.name}</span>
-        <span className="text-muted-foreground shrink-0 text-xs">{company.cnpj}</span>
+      <p className="text-xs text-muted-foreground">CNPJ: {company.cnpj}</p>
+      <div className="space-y-1">
+        <Label className="text-xs">Nome</Label>
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
       </div>
-      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
-        <Input
-          type="email"
-          placeholder="E-mail para recuperação de senha"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="sm:max-w-md"
-        />
-        <Button type="button" size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
-          Guardar
-        </Button>
+      <div className="space-y-1">
+        <Label className="text-xs">E-mail (recuperação de senha)</Label>
+        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
+      <div className="space-y-1">
+        <Label className="text-xs">Telefone</Label>
+        <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+      </div>
+      <Button type="button" size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
+        Guardar alterações
+      </Button>
     </div>
   );
 }

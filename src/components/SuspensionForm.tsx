@@ -51,7 +51,7 @@ export function SuspensionForm() {
 
   useEffect(() => {
     if (company) {
-      api.employees.list(company.id).then((data) => setEmployees(data));
+      api.employees.list({ companyId: company.id }).then((data) => setEmployees(data));
     }
   }, [company]);
 

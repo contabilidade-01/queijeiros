@@ -63,6 +63,12 @@ O administrador acede ao painel `/admin` e vê **todas** as empresas, documentos
 
 O token no e-mail é armazenado só como **hash** na tabela `password_reset_tokens` e expira; uso único após redefinir.
 
+### Várias empresas (CNPJ) e “banco por cliente”
+
+- No painel **`/admin`** podes **cadastrar novas empresas** (CNPJ, nome, e-mail e telefone). A **senha inicial** é sempre os **14 dígitos do CNPJ** (como nos seeds).
+- **Acesso exclusivo:** com login de **empresa** (CNPJ), a API só devolve dados com o `company_id` dessa empresa — a mesma **interface** (portal) serve todos os CNPJ; o isolamento é **lógico** na mesma base PostgreSQL (`rhapp`), não um ficheiro/instância Postgres separada por CNPJ. Criar **uma base de dados física por cliente** exigiria utilizador com `CREATEDB`, gestão de dezenas de conexões e migrações por base; não é o modelo actual.
+- No admin, o filtro **“Filtrar listas por empresa”** restringe documentos, funcionários e atestados à empresa escolhida.
+
 ### Consola do Chrome no login
 
 Mensagens do tipo *"The message channel closed before a response was received"* costumam vir de **extensões do navegador** (tradutor, bloqueador, etc.), não da aplicação. Teste numa janela anónima sem extensões ou ignore se o login e a API funcionam.

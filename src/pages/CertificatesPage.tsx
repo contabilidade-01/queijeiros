@@ -41,7 +41,7 @@ const CertificatesPage = () => {
 
   const { data: employees } = useQuery({
     queryKey: ["employees", company?.id],
-    queryFn: () => api.employees.list(company!.id),
+    queryFn: () => api.employees.list({ companyId: company!.id }),
     enabled: !!company,
   });
 
@@ -50,11 +50,11 @@ const CertificatesPage = () => {
     queryFn: async () => {
       const startDate = new Date(Number(filterYear), Number(filterMonth), 1);
       const endDate = new Date(Number(filterYear), Number(filterMonth) + 1, 0);
-      return api.certificates.list(
-        company!.id,
-        format(startDate, "yyyy-MM-dd"),
-        format(endDate, "yyyy-MM-dd")
-      );
+      return api.certificates.list({
+        companyId: company!.id,
+        startDate: format(startDate, "yyyy-MM-dd"),
+        endDate: format(endDate, "yyyy-MM-dd"),
+      });
     },
     enabled: !!company,
   });

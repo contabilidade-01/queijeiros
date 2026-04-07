@@ -9,6 +9,21 @@ router.use(authMiddleware);
 router.get("/", async (req, res) => {
   try {
     if (req.isAdmin) {
+      const filterId = (req.query.company_id || "").toString();
+      if (filterId) {
+        if (!validateUUID(filterId)) {
+          return res.status(400).json({ error: "company_id inválido" });
+        }
+        const { rows } = await db.query(
+          `SELECT e.*, c.name AS company_name, c.cnpj AS company_cnpj
+           FROM employees e
+           JOIN companies c ON c.id = e.company_id
+           WHERE e.company_id = $1
+           ORDER BY e.name`,
+          [filterId]
+        );
+        return res.json(rows);
+      }
       const { rows } = await db.query(
         `SELECT e.*, c.name AS company_name, c.cnpj AS company_cnpj
          FROM employees e

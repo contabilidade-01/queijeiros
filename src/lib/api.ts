@@ -90,19 +90,56 @@ export const api = {
       }),
     companies: () =>
       request<
-        Array<{ id: string; name: string; cnpj: string; contact_email: string | null; created_at: string }>
+        Array<{
+          id: string;
+          name: string;
+          cnpj: string;
+          contact_email: string | null;
+          phone: string | null;
+          created_at: string;
+        }>
       >("/admin/companies"),
-    updateCompanyContactEmail: (companyId: string, contact_email: string | null) =>
-      request<{ ok: boolean; contact_email: string | null }>(`/admin/companies/${companyId}`, {
+    createCompany: (data: {
+      name: string;
+      cnpj: string;
+      contact_email?: string | null;
+      phone?: string | null;
+    }) =>
+      request<{
+        company: {
+          id: string;
+          name: string;
+          cnpj: string;
+          contact_email: string | null;
+          phone: string | null;
+          created_at: string;
+        };
+        message: string;
+      }>("/admin/companies", { method: "POST", body: JSON.stringify(data) }),
+    updateCompany: (
+      companyId: string,
+      data: { name?: string; contact_email?: string | null; phone?: string | null }
+    ) =>
+      request<{
+        id: string;
+        name: string;
+        cnpj: string;
+        contact_email: string | null;
+        phone: string | null;
+        created_at: string;
+      }>(`/admin/companies/${companyId}`, {
         method: "PATCH",
-        body: JSON.stringify({ contact_email }),
+        body: JSON.stringify(data),
       }),
   },
 
   employees: {
-    // No need for companyId param - server extracts from JWT
-    list: (_companyId?: string) =>
-      request<
+    list: (opts?: { companyId?: string }) => {
+      const q =
+        opts?.companyId && opts.companyId.length
+          ? `?company_id=${encodeURIComponent(opts.companyId)}`
+          : "";
+      return request<
         Array<{
           id: string;
           name: string;
@@ -114,7 +151,8 @@ export const api = {
           company_name?: string;
           company_cnpj?: string;
         }>
-      >(`/employees`),
+      >(`/employees${q}`);
+    },
     create: (data: { company_id?: string; name: string; cpf: string; pis?: string | null; active?: boolean }) =>
       request("/employees", { method: "POST", body: JSON.stringify(data) }),
     import: (rows: Array<{ name: string; cpf: string; pis?: string | null }>, fileCnpj: string) =>
@@ -129,13 +167,18 @@ export const api = {
   },
 
   documents: {
-    list: (_companyId?: string) =>
-      request<Array<{
+    list: (opts?: { companyId?: string }) => {
+      const q =
+        opts?.companyId && opts.companyId.length
+          ? `?company_id=${encodeURIComponent(opts.companyId)}`
+          : "";
+      return request<Array<{
         id: string; document_type: string; employee_name: string; employee_cpf: string;
         employee_pis: string | null; company_name: string; company_cnpj: string; company_id: string | null;
         start_date: string | null; suspension_days: number | null; return_date: string | null;
         description: string | null; created_at: string;
-      }>>(`/documents`),
+      }>>(`/documents${q}`);
+    },
     create: (data: Record<string, unknown>) =>
       request("/documents", { method: "POST", body: JSON.stringify(data) }),
     delete: (id: string) =>
@@ -143,11 +186,13 @@ export const api = {
   },
 
   certificates: {
-    list: (_companyId?: string, startDate?: string, endDate?: string) => {
+    list: (opts?: { companyId?: string; startDate?: string; endDate?: string }) => {
       let url = `/certificates`;
       const params: string[] = [];
-      if (startDate) params.push(`start_date=${startDate}`);
-      if (endDate) params.push(`end_date=${endDate}`);
+      const companyId = opts?.companyId;
+      if (companyId && companyId.length) params.push(`company_id=${encodeURIComponent(companyId)}`);
+      if (opts?.startDate) params.push(`start_date=${opts.startDate}`);
+      if (opts?.endDate) params.push(`end_date=${opts.endDate}`);
       if (params.length) url += `?${params.join("&")}`;
       return request<Array<{
         id: string; company_id: string; employee_id: string; file_path: string;
