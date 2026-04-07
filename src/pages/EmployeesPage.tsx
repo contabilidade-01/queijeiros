@@ -93,16 +93,38 @@ const EmployeesPage = () => {
   });
 
   const extractFileCnpj = (csv: string): string | null => {
-    const lines = csv.split(/\r?\n/);
-    for (const rawLine of lines.slice(0, 20)) {
+    const lines = csv.split(/\r?\n/).filter(Boolean);
+    const cnpjRegex = /\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/;
+
+    for (const rawLine of lines) {
       const line = rawLine.trim();
-      if (!/cnpj/i.test(line)) continue;
-      const match = line.match(/\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}/);
-      if (match) {
-        const digits = match[0].replace(/\D/g, "");
+      if (!line) continue;
+
+      const cells = line
+        .split(/[;,\t]/)
+        .map((cell) => cell.trim())
+        .filter(Boolean);
+
+      // 1) Procura CNPJ em qualquer célula (com máscara ou sem máscara)
+      for (const cell of cells) {
+        const maskedMatch = cell.match(cnpjRegex);
+        if (maskedMatch) {
+          const digits = maskedMatch[0].replace(/\D/g, "");
+          if (digits.length === 14) return digits;
+        }
+
+        const digitsOnly = cell.replace(/\D/g, "");
+        if (digitsOnly.length === 14) return digitsOnly;
+      }
+
+      // 2) Fallback: procura na linha inteira (caso o CSV venha "quebrado")
+      const lineMatch = line.match(cnpjRegex);
+      if (lineMatch) {
+        const digits = lineMatch[0].replace(/\D/g, "");
         if (digits.length === 14) return digits;
       }
     }
+
     return null;
   };
 
