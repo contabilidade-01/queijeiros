@@ -21,4 +21,19 @@ function validateDate(val) {
   return /^\d{4}-\d{2}-\d{2}$/.test(val) && !isNaN(Date.parse(val));
 }
 
-module.exports = { validateCPF, validateCNPJ, validateString, validateUUID, validateDate };
+/** E-mail simples (login/recuperação), não RFC completo */
+function validateEmailFormat(val) {
+  if (typeof val !== "string") return false;
+  const s = val.trim();
+  if (s.length < 3 || s.length > 254) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
+}
+
+module.exports = {
+  validateCPF,
+  validateCNPJ,
+  validateString,
+  validateUUID,
+  validateDate,
+  validateEmailFormat,
+};

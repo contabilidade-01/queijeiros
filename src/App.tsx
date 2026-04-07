@@ -6,6 +6,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index.tsx";
 import LoginPage from "./pages/LoginPage.tsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.tsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.tsx";
 import SuspensionPage from "./pages/SuspensionPage.tsx";
 import WarningPage from "./pages/WarningPage.tsx";
 import HistoryPage from "./pages/HistoryPage.tsx";
@@ -41,6 +43,8 @@ function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
 const AppRoutes = () => (
   <Routes>
     <Route path="/login" element={<LoginPage />} />
+    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+    <Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route path="/admin" element={<AdminOnlyRoute><AdminPage /></AdminOnlyRoute>} />
     <Route path="/" element={<CompanyOnlyRoute><Index /></CompanyOnlyRoute>} />
     <Route path="/suspensao" element={<CompanyOnlyRoute><SuspensionPage /></CompanyOnlyRoute>} />

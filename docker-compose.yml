@@ -50,6 +50,15 @@ services:
       JWT_SECRET: ${JWT_SECRET:-troque-este-segredo-em-producao}
       PORT: 3001
       UPLOAD_DIR: /app/uploads
+      # Recuperação de senha: URL pública do front (HTTPS em produção, sem / no fim)
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      TRUST_PROXY_HOPS: ${TRUST_PROXY_HOPS:-1}
     volumes:
       - uploads:/app/uploads
     depends_on:

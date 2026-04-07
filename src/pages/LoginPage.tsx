@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Building2, Lock, LogIn } from "lucide-react";
 import { maskCNPJ, maskCPF } from "@/lib/masks";
 import { Button } from "@/components/ui/button";
@@ -99,6 +99,11 @@ const LoginPage = () => {
               <LogIn className="h-5 w-5" />
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <p className="text-center text-sm">
+              <Link to="/forgot-password" className="text-primary underline-offset-4 hover:underline">
+                Esqueci minha senha
+              </Link>
+            </p>
           </form>
         </CardContent>
       </Card>

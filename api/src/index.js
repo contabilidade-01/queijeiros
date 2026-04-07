@@ -4,9 +4,11 @@ const cors = require("cors");
 const path = require("path");
 const db = require("./db");
 const { ensurePlatformAdmins } = require("./ensurePlatformAdmins");
+const { ensurePasswordResetSchema } = require("./ensurePasswordResetSchema");
 const { deleteInactiveEmployeesOnStartup } = require("./deleteInactiveEmployeesOnStartup");
 
 const app = express();
+app.set("trust proxy", Number(process.env.TRUST_PROXY_HOPS || 1));
 app.use(cors());
 app.use(express.json());
 
@@ -38,6 +40,7 @@ const PORT = process.env.PORT || 3001;
 async function start() {
   try {
     await ensurePlatformAdmins(db);
+    await ensurePasswordResetSchema(db);
     await deleteInactiveEmployeesOnStartup(db);
   } catch (err) {
     console.error("Startup DB tasks:", err.message);

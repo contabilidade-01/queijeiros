@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS companies (
   name TEXT NOT NULL,
   cnpj TEXT UNIQUE NOT NULL,
   password_hash TEXT NOT NULL,
+  contact_email TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 

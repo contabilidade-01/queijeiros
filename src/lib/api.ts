@@ -1,5 +1,19 @@
 const API_BASE = import.meta.env.VITE_API_URL || "/api";
 
+/** Rotas públicas (login, recuperação de senha): sem Bearer e sem redirecionar em 401 */
+async function publicRequest<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options?.headers as Record<string, string>),
+  };
+  const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Erro de rede" }));
+    throw new Error(err.error || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
 function getToken(): string | null {
   try {
     const session = localStorage.getItem("company_session");
@@ -44,9 +58,21 @@ export type LoginResponse =
 export const api = {
   auth: {
     login: (login: string, password: string) =>
-      request<LoginResponse>("/auth/login", {
+      publicRequest<LoginResponse>("/auth/login", {
         method: "POST",
         body: JSON.stringify({ login, password }),
+      }),
+    forgotPassword: (login: string, email: string) =>
+      publicRequest<{ message: string }>("/auth/forgot-password", {
+        method: "POST",
+        body: JSON.stringify({ login, email }),
+      }),
+    checkResetToken: (token: string) =>
+      publicRequest<{ valid: boolean }>(`/auth/reset-token?token=${encodeURIComponent(token)}`),
+    resetPassword: (token: string, password: string) =>
+      publicRequest<{ message: string }>("/auth/reset-password", {
+        method: "POST",
+        body: JSON.stringify({ token, password }),
       }),
   },
 
@@ -55,8 +81,22 @@ export const api = {
       request<{ companies: number; documents: number; employees: number; certificates: number }>(
         "/admin/summary"
       ),
+    me: () =>
+      request<{ id: string; cpf: string; contact_email: string | null }>("/admin/me"),
+    updateMyContactEmail: (contact_email: string | null) =>
+      request<{ ok: boolean; contact_email: string | null }>("/admin/me/contact-email", {
+        method: "PATCH",
+        body: JSON.stringify({ contact_email }),
+      }),
     companies: () =>
-      request<Array<{ id: string; name: string; cnpj: string; created_at: string }>>("/admin/companies"),
+      request<
+        Array<{ id: string; name: string; cnpj: string; contact_email: string | null; created_at: string }>
+      >("/admin/companies"),
+    updateCompanyContactEmail: (companyId: string, contact_email: string | null) =>
+      request<{ ok: boolean; contact_email: string | null }>(`/admin/companies/${companyId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ contact_email }),
+      }),
   },
 
   employees: {

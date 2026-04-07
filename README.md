@@ -42,6 +42,27 @@ Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o 
 
 O administrador acede ao painel `/admin` e vê **todas** as empresas, documentos emitidos, funcionários e atestados. Na primeira subida da API após a atualização, a tabela `platform_admins` é criada automaticamente se ainda não existir. O script **`db/seed-platform-admin.sql`** continua disponível para aplicar manualmente ou repor a palavra-passe do admin.
 
+### Recuperação de senha por e-mail
+
+- No login, **Esqueci minha senha** pede CNPJ ou CPF + e-mail. Só envia o link se o e-mail for **igual** ao cadastrado para essa empresa ou administrador.
+- Cadastro de e-mail: no painel **`/admin`**, o administrador define o próprio e-mail e, por empresa, o e-mail de recuperação (lista de empresas).
+- Variáveis na **API** (senão a rota responde 503 para “esqueci a senha”):
+
+| Variável | Exemplo / notas |
+|----------|------------------|
+| `PUBLIC_APP_URL` | `https://app.seudominio.com` — URL base do **front** onde abre `/reset-password` (sem barra final). |
+| `SMTP_HOST` | `smtp.seuprovider.com` |
+| `SMTP_PORT` | `587` (STARTTLS) ou `465` (SSL) |
+| `SMTP_SECURE` | `true` se a porta for 465; caso contrário `false` |
+| `SMTP_USER` / `SMTP_PASS` | Credenciais SMTP |
+| `SMTP_FROM` | Remetente, ex. `Gestão <no-reply@seudominio.com>` |
+| `PASSWORD_RESET_EXPIRY_MINUTES` | Opcional; padrão `60` (mín. 5, máx. 7 dias). |
+| `RATE_LIMIT_FORGOT_PASSWORD_MAX` | Opcional; padrão `5` pedidos / 15 min por IP. |
+| `RATE_LIMIT_RESET_PASSWORD_MAX` | Opcional; padrão `20` / 15 min por IP. |
+| `TRUST_PROXY_HOPS` | Opcional; padrão `1` — hops de proxy confiáveis para o rate limit ver o IP real. |
+
+O token no e-mail é armazenado só como **hash** na tabela `password_reset_tokens` e expira; uso único após redefinir.
+
 ### Consola do Chrome no login
 
 Mensagens do tipo *"The message channel closed before a response was received"* costumam vir de **extensões do navegador** (tradutor, bloqueador, etc.), não da aplicação. Teste numa janela anónima sem extensões ou ignore se o login e a API funcionam.
@@ -83,6 +104,8 @@ Documentação oficial útil: [App Service](https://easypanel.io/docs/services/a
 | `DB_PASSWORD` | compose | Palavra-passe do Postgres (`POSTGRES_PASSWORD` / API). |
 | `JWT_SECRET` | compose | Segredo forte em produção. |
 | `VITE_API_URL` | build do serviço `web` | Deixar vazio se front e API ficam no mesmo host com proxy `/api`. Se o front for servido noutro domínio, usar URL absoluta da API, ex.: `https://api.teudominio.com/api`. |
+| `PUBLIC_APP_URL` | serviço `api` | URL pública do **site** (front), ex. `https://app.teudominio.com`, para links de recuperação de senha. |
+| `SMTP_*` | serviço `api` | Ver secção **Recuperação de senha por e-mail** acima. |
 
 6. **SSH / clone**: repositório privado requer chave ou token configurado no Easypanel (no passado, URL/branch vazios ou clone incompleto geram erros tipo “api not found”).
 
