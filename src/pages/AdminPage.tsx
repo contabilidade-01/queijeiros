@@ -11,7 +11,7 @@ import {
   Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -138,6 +138,8 @@ const AdminPage = () => {
             </h1>
             <p className="text-xs text-muted-foreground">
               CPF: {admin?.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")}
+              {" · "}
+              <span className="text-foreground/80">Gestão de empresas, razão social e contactos</span>
             </p>
           </div>
           <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -195,8 +197,12 @@ const AdminPage = () => {
           <CardContent className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1 sm:col-span-2">
-                <Label className="text-xs">Razão social / nome</Label>
-                <Input value={newCoName} onChange={(e) => setNewCoName(e.target.value)} placeholder="Nome da empresa" />
+                <Label className="text-xs">Razão social</Label>
+                <Input
+                  value={newCoName}
+                  onChange={(e) => setNewCoName(e.target.value)}
+                  placeholder="Ex.: EMPRESA EXEMPLO LTDA (como no cartão CNPJ)"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-xs">CNPJ</Label>
@@ -277,7 +283,8 @@ const AdminPage = () => {
                 <SelectItem value="__all__">Todas as empresas</SelectItem>
                 {companies?.map((c) => (
                   <SelectItem key={c.id} value={c.id}>
-                    {c.name} · {c.cnpj}
+                    <span className="font-medium">{c.name}</span>
+                    <span className="text-muted-foreground"> · {c.cnpj}</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -288,10 +295,15 @@ const AdminPage = () => {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Building2 className="h-4 w-4" /> Empresas cadastradas
+              <Building2 className="h-4 w-4" /> Gestão de empresas
             </CardTitle>
+            <CardDescription>
+              Para cada CNPJ: defina a <strong>razão social</strong> (nome no filtro e nos documentos novos),
+              e-mail de recuperação de senha e telefone. Alterar a razão social atualiza também o texto
+              guardado nos documentos já emitidos dessa empresa.
+            </CardDescription>
           </CardHeader>
-          <CardContent className="max-h-96 overflow-y-auto space-y-4 text-sm">
+          <CardContent className="max-h-[32rem] overflow-y-auto space-y-4 text-sm">
             {companies?.length ? (
               companies.map((c) => <CompanyManageRow key={c.id} company={c} />)
             ) : (
@@ -428,25 +440,44 @@ function CompanyManageRow({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
-      toast.success(`Dados de ${name.trim()} atualizados`);
+      queryClient.invalidateQueries({ queryKey: ["issued-documents"] });
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success(`Razão social e dados de ${name.trim()} guardados`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   return (
-    <div className="border-b border-border/50 pb-3 last:border-0 space-y-2">
-      <p className="text-xs text-muted-foreground">CNPJ: {company.cnpj}</p>
+    <div className="rounded-lg border bg-card/50 p-4 space-y-3 scroll-mt-2">
+      <p className="text-xs font-mono text-muted-foreground">CNPJ {company.cnpj}</p>
       <div className="space-y-1">
-        <Label className="text-xs">Nome</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} />
+        <Label htmlFor={`razao-${company.id}`} className="text-xs font-semibold">
+          Razão social
+        </Label>
+        <Input
+          id={`razao-${company.id}`}
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Razão social conforme Receita Federal"
+        />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">E-mail (recuperação de senha)</Label>
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Label htmlFor={`email-${company.id}`} className="text-xs">
+          E-mail (recuperação de senha)
+        </Label>
+        <Input id={`email-${company.id}`} type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <div className="space-y-1">
-        <Label className="text-xs">Telefone</Label>
-        <Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="(00) 00000-0000" />
+        <Label htmlFor={`tel-${company.id}`} className="text-xs">
+          Telefone
+        </Label>
+        <Input
+          id={`tel-${company.id}`}
+          type="tel"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="DDD + número"
+        />
       </div>
       <Button type="button" size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
         Guardar alterações

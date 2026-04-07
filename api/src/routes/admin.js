@@ -58,7 +58,7 @@ router.post("/companies", async (req, res) => {
   try {
     const { name, cnpj, contact_email, phone } = req.body;
     if (!validateString(name, 2, 200)) {
-      return res.status(400).json({ error: "Nome da empresa inválido (2–200 caracteres)" });
+      return res.status(400).json({ error: "Razão social inválida (2–200 caracteres)" });
     }
     const rawCnpj = (cnpj || "").toString();
     const cnpjDigits = rawCnpj.replace(/\D/g, "");
@@ -146,17 +146,19 @@ router.patch("/companies/:id", async (req, res) => {
     const sets = [];
     const vals = [];
     let i = 1;
+    let newRazaoSocial = null;
 
     if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
       const n = req.body.name;
       if (n === null || n === "") {
-        return res.status(400).json({ error: "Nome não pode ser vazio" });
+        return res.status(400).json({ error: "Razão social não pode ser vazia" });
       }
       if (!validateString(n, 2, 200)) {
-        return res.status(400).json({ error: "Nome inválido (2–200 caracteres)" });
+        return res.status(400).json({ error: "Razão social inválida (2–200 caracteres)" });
       }
+      newRazaoSocial = String(n).trim();
       sets.push(`name = $${i++}`);
-      vals.push(String(n).trim());
+      vals.push(newRazaoSocial);
     }
     if (Object.prototype.hasOwnProperty.call(req.body, "contact_email")) {
       const norm = normalizeEmailField(req.body.contact_email);
@@ -184,12 +186,31 @@ router.patch("/companies/:id", async (req, res) => {
     }
 
     vals.push(id);
-    const { rows, rowCount } = await db.query(
-      `UPDATE companies SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, cnpj, contact_email, phone, created_at`,
-      vals
-    );
-    if (!rowCount) return res.status(404).json({ error: "Empresa não encontrada" });
-    res.json(rows[0]);
+    const client = await db.connect();
+    try {
+      await client.query("BEGIN");
+      const { rows, rowCount } = await client.query(
+        `UPDATE companies SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, cnpj, contact_email, phone, created_at`,
+        vals
+      );
+      if (!rowCount) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ error: "Empresa não encontrada" });
+      }
+      if (newRazaoSocial) {
+        await client.query(`UPDATE issued_documents SET company_name = $1 WHERE company_id = $2`, [
+          newRazaoSocial,
+          id,
+        ]);
+      }
+      await client.query("COMMIT");
+      res.json(rows[0]);
+    } catch (e) {
+      await client.query("ROLLBACK").catch(() => {});
+      throw e;
+    } finally {
+      client.release();
+    }
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro interno" });
