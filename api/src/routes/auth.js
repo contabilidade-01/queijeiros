@@ -38,7 +38,7 @@ router.post("/login", async (req, res) => {
       company: { id: company.id, name: company.name, cnpj: company.cnpj },
     });
   } catch (err) {
-    console.error("Login error:", err);
+    console.error("Login error:", err.message, err.code || "");
     res.status(500).json({ error: "Erro interno" });
   }
 });
