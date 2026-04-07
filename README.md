@@ -4,7 +4,7 @@ Frontend React (Vite) + API Express + PostgreSQL. O front chama a API em `/api` 
 
 ## O que o projeto diz hoje sobre deploy
 
-- **`docker-compose.yml`**: sobe `postgres`, `api` (porta interna 3001) e `frontend` (Nginx na **80**, com proxy `/api` → `api:3001`).
+- **`docker-compose.yml`**: sobe `postgres`, `api` (porta interna 3001) e **`web`** (Nginx na **80**, com proxy `/api` → `api:3001`).
 - **`Dockerfile` (raiz)**: só constrói o **frontend** estático + Nginx — útil isoladamente, mas **não** inclui API nem banco.
 - **Variáveis**: copia `.env.example` para `.env` em local (não commitar) ou define as mesmas chaves no Easypanel.
 
@@ -17,7 +17,7 @@ Para produção na VPS com os três serviços, o caminho alinhado ao repo é **D
 1. Novo **projeto** → serviço **Docker Compose** → fonte **Git**, branch `main`, raiz do repo (ficheiro `docker-compose.yml` no topo).
 2. Variáveis de ambiente: `DB_PASSWORD`, `JWT_SECRET` (obrigatórias em produção); `VITE_API_URL` vazio se usares o Nginx do stack (proxy interno `/api`).
 3. Garantir volumes persistentes para **`pgdata`** e **`uploads`** (o painel mapeia para disco do servidor).
-4. **Domínio** (ex.: `app.gestaoempresa.com`): DNS com registo **A** para o IP da VPS; no Easypanel associa o domínio ao serviço que expõe a **porta 80** do contentor **`frontend`** e ativa **HTTPS**.
+4. **Domínio** (ex.: `app.gestaoempresa.com`): DNS com registo **A** para o IP da VPS; no Easypanel em **Serviço Compose** usa **`web`** (Nginx) e **porta 80**, e ativa **HTTPS**.
 5. **Auto Deploy**: nas definições da fonte Git no Easypanel, ativar para redeploy a cada push (webhook no GitHub).
 
 ---
@@ -30,7 +30,7 @@ Documentação oficial útil: [App Service](https://easypanel.io/docs/services/a
 
 1. Criar **projeto** no Easypanel → adicionar serviço do tipo **Docker Compose** (ou equivalente que aplique o `docker-compose.yml` do repositório).
 2. **Fonte**: repositório Git (SSH ou GitHub), **branch** correta, **caminho** na raiz onde está o `docker-compose.yml`.
-3. **Domínio / proxy**: expor o serviço que publica a **porta 80** do contentor **`frontend`** (é ele que serve o SPA e faz proxy da API).
+3. **Domínio / proxy**: apontar para o serviço **`web`** na **porta 80** (Nginx: SPA + proxy `/api`).
 4. **Volumes persistentes** (importante no Easypanel): mapear volumes nomeados para não perder dados ao redeploy:
    - `pgdata` — base PostgreSQL  
    - `uploads` — ficheiros enviados pela API (certificados, etc.)
@@ -40,7 +40,7 @@ Documentação oficial útil: [App Service](https://easypanel.io/docs/services/a
 |----------|------|--------|
 | `DB_PASSWORD` | compose | Palavra-passe do Postgres (`POSTGRES_PASSWORD` / API). |
 | `JWT_SECRET` | compose | Segredo forte em produção. |
-| `VITE_API_URL` | build do `frontend` | Deixar vazio se front e API ficam no mesmo host com proxy `/api`. Se o front for servido noutro domínio, usar URL absoluta da API, ex.: `https://api.teudominio.com/api`. |
+| `VITE_API_URL` | build do serviço `web` | Deixar vazio se front e API ficam no mesmo host com proxy `/api`. Se o front for servido noutro domínio, usar URL absoluta da API, ex.: `https://api.teudominio.com/api`. |
 
 6. **SSH / clone**: repositório privado requer chave ou token configurado no Easypanel (no passado, URL/branch vazios ou clone incompleto geram erros tipo “api not found”).
 
