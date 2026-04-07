@@ -30,7 +30,6 @@ Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o 
 
 | Empresa (exemplo) | CNPJ (só números) | Senha |
 |-------------------|-------------------|--------|
-| Checkar Segurança do App | `26786637000149` | `26786637000149` |
 | RESTAURANTE DO QUEIJEIRO 3 LIMITADA | `52191264000173` | `52191264000173` |
 | RESTAURANTE DO QUEIJEIRO 4 LTDA | `54803962000108` | `54803962000108` |
 | Gestão Empresa | `35736034000123` | `35736034000123` |

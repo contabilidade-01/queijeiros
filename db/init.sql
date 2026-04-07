@@ -61,12 +61,6 @@ INSERT INTO platform_admins (cpf, password_hash) VALUES (
 
 -- Seeds (login: CNPJ com/sem máscara; senha = CNPJ só dígitos).
 INSERT INTO companies (name, cnpj, password_hash) VALUES (
-  'Checkar Segurança do App',
-  '26786637000149',
-  '$2a$10$Vh//AwQ4LXwzBNsaItK2vOljW9D4M2rYY8sN9c8MFlrvx5max0HYm'
-) ON CONFLICT (cnpj) DO NOTHING;
-
-INSERT INTO companies (name, cnpj, password_hash) VALUES (
   'RESTAURANTE DO QUEIJEIRO 3 LIMITADA',
   '52191264000173',
   '$2a$10$5faaPl2KUgL2HkTo0a2FPOOdHG7wBjhiVE8z.XaJA9SF8HvYUAjJq'
