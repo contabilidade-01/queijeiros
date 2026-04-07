@@ -63,19 +63,16 @@ const LoginPage = () => {
             <Building2 className="h-7 w-7" />
           </div>
           <CardTitle className="text-2xl">Gestão de Documentos</CardTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Empresa: CNPJ + senha (geralmente o próprio CNPJ). Administrador: CPF + senha fornecida.
-          </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label htmlFor="login">CNPJ da empresa ou CPF do administrador</Label>
+              <Label htmlFor="login">Login</Label>
               <div className="relative mt-1">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="login"
-                  placeholder="00.000.000/0000-00 ou 000.000.000-00"
+                  placeholder="CNPJ ou CPF"
                   value={loginField}
                   onChange={(e) => handleLoginField(e.target.value)}
                   className="pl-10"

@@ -41,11 +41,7 @@ Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o 
 |--------|---------------------|--------|
 | Administrador | CPF `05487541523` (com ou sem máscara) | `35736034000123` |
 
-O administrador acede ao painel `/admin` e vê **todas** as empresas, documentos emitidos, funcionários e atestados. Em bases **já existentes** (sem ter corrido o `init.sql` de novo), aplica também:
-
-```bash
-docker compose exec -T postgres psql -U rhapp -d rhapp < db/seed-platform-admin.sql
-```
+O administrador acede ao painel `/admin` e vê **todas** as empresas, documentos emitidos, funcionários e atestados. Na primeira subida da API após a atualização, a tabela `platform_admins` é criada automaticamente se ainda não existir. O script **`db/seed-platform-admin.sql`** continua disponível para aplicar manualmente ou repor a palavra-passe do admin.
 
 ### Consola do Chrome no login
 

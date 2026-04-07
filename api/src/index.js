@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const path = require("path");
 const db = require("./db");
+const { ensurePlatformAdmins } = require("./ensurePlatformAdmins");
 
 const app = express();
 app.use(cors());
@@ -32,4 +33,18 @@ app.get("/api/health", async (_req, res) => {
 });
 
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`API running on port ${PORT}`));
+
+async function start() {
+  try {
+    await ensurePlatformAdmins(db);
+  } catch (err) {
+    console.error("ensurePlatformAdmins:", err.message);
+    throw err;
+  }
+  app.listen(PORT, () => console.log(`API running on port ${PORT}`));
+}
+
+start().catch((err) => {
+  console.error("API failed to start:", err);
+  process.exit(1);
+});
