@@ -52,8 +52,13 @@ export const api = {
       request<Array<{ id: string; name: string; cpf: string; pis: string | null; active: boolean; company_id: string; created_at: string }>>(
         `/employees`
       ),
-    create: (data: { company_id?: string; name: string; cpf: string; pis?: string | null }) =>
+    create: (data: { company_id?: string; name: string; cpf: string; pis?: string | null; active?: boolean }) =>
       request("/employees", { method: "POST", body: JSON.stringify(data) }),
+    import: (rows: Array<{ name: string; cpf: string; pis?: string | null; active?: boolean }>) =>
+      request<{ inserted: number; skipped: number; errors: Array<{ row: number; message: string }> }>("/employees/import", {
+        method: "POST",
+        body: JSON.stringify({ rows }),
+      }),
     update: (id: string, data: { name?: string; cpf?: string; pis?: string | null; active?: boolean }) =>
       request(`/employees/${id}`, { method: "PUT", body: JSON.stringify(data) }),
     delete: (id: string) =>

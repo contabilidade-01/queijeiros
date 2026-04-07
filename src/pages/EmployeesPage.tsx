@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Pencil, Trash2, Users, Save, X } from "lucide-react";
+import { ArrowLeft, Plus, Pencil, Trash2, Users, Save, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,6 +20,7 @@ const EmployeesPage = () => {
   const [name, setName] = useState("");
   const [cpf, setCpf] = useState("");
   const [pis, setPis] = useState("");
+  const importInputRef = useRef<HTMLInputElement | null>(null);
 
   const { data: employees, isLoading } = useQuery({
     queryKey: ["employees", company?.id],
@@ -72,6 +73,71 @@ const EmployeesPage = () => {
     },
   });
 
+  const importMutation = useMutation({
+    mutationFn: (rows: Array<{ name: string; cpf: string; active?: boolean }>) => api.employees.import(rows),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
+      toast.success(`Importação concluída: ${result.inserted} inseridos, ${result.skipped} ignorados`);
+      if (result.errors.length) {
+        toast.warning(`${result.errors.length} linhas com erro foram ignoradas`);
+      }
+    },
+    onError: () => toast.error("Erro ao importar funcionários"),
+  });
+
+  const parseEmployeesCsv = (csv: string): Array<{ name: string; cpf: string; active: boolean }> => {
+    const lines = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const parsed = new Map<string, { name: string; cpf: string; active: boolean }>();
+
+    for (const line of lines) {
+      if (!line.includes(";")) continue;
+      if (/empresa|cnpj|rela/i.test(line)) continue;
+
+      const parts = line.split(";").map((part) => part.trim()).filter((part) => part.length > 0);
+      if (!parts.length) continue;
+
+      let cpf = "";
+      let name = "";
+
+      for (const part of parts) {
+        const digits = part.replace(/\D/g, "");
+        if (!cpf && digits.length === 11) cpf = digits;
+      }
+      for (const part of parts) {
+        if (part.replace(/\D/g, "").length === 11) continue;
+        if (/\d{2}\/\d{2}\/\d{4}/.test(part)) continue;
+        if (/^situa/i.test(part)) continue;
+        if (part.length >= 3) {
+          name = part.replace(/\s+/g, " ").trim().toUpperCase();
+          break;
+        }
+      }
+
+      if (!cpf || !name) continue;
+      const active = !parts.some((part) => /\d{2}\/\d{2}\/\d{4}/.test(part));
+      parsed.set(cpf, { name, cpf, active });
+    }
+
+    return Array.from(parsed.values());
+  };
+
+  const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const rows = parseEmployeesCsv(text);
+      if (!rows.length) {
+        toast.error("Arquivo sem funcionários válidos para importar");
+        return;
+      }
+      importMutation.mutate(rows);
+    } finally {
+      event.target.value = "";
+    }
+  };
+
   const startEdit = (emp: { id: string; name: string; cpf: string; pis: string | null }) => {
     setEditingId(emp.id);
     setName(emp.name);
@@ -100,9 +166,26 @@ const EmployeesPage = () => {
             <p className="text-xs text-muted-foreground">{company?.name}</p>
           </div>
           {!showAdd && !editingId && (
-            <Button size="sm" onClick={() => { setShowAdd(true); setName(""); setCpf(""); setPis(""); }}>
-              <Plus className="h-4 w-4 mr-1" /> Novo
-            </Button>
+            <div className="flex gap-2">
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleImportFile}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => importInputRef.current?.click()}
+                disabled={importMutation.isPending}
+              >
+                <Upload className="h-4 w-4 mr-1" /> Importar CSV
+              </Button>
+              <Button size="sm" onClick={() => { setShowAdd(true); setName(""); setCpf(""); setPis(""); }}>
+                <Plus className="h-4 w-4 mr-1" /> Novo
+              </Button>
+            </div>
           )}
         </div>
       </header>

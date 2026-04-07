@@ -30,10 +30,24 @@ Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o 
 
 | Empresa (exemplo) | CNPJ (só números) | Senha |
 |-------------------|-------------------|--------|
-| Gestão Empresa | `35736034000123` | `35736034000123` |
 | Checkar Segurança do App | `26786637000149` | `26786637000149` |
+| RESTAURANTE DO QUEIJEIRO 3 LIMITADA | `52191264000173` | `52191264000173` |
+| RESTAURANTE DO QUEIJEIRO 4 LTDA | `54803962000108` | `54803962000108` |
+| Gestão Empresa | `35736034000123` | `35736034000123` |
 
-Se a BD já tinha sido criada antes deste seed, corre também **`db/seed-company-35736034000123.sql`** uma vez no Postgres.
+Se a BD já tinha sido criada antes deste seed, corre também **`db/seed-queijeiros-companies.sql`** uma vez no Postgres:
+
+```bash
+docker compose exec -T postgres psql -U rhapp -d rhapp < db/seed-queijeiros-companies.sql
+```
+
+### Importação de funcionários (CSV)
+
+Na tela **Funcionários**, use o botão **Importar CSV**:
+
+- O sistema lê `Nome` + `CPF` de arquivos com `;` (como "Relação de Empregados").
+- Se houver **data de demissão**, o funcionário entra como **inativo**.
+- Se o CPF já existir na mesma empresa, a linha é ignorada (evita duplicados).
 
 ---
 

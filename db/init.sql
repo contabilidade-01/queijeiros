@@ -46,11 +46,23 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Seeds (login: CNPJ só dígitos + senha indicada). bcrypt cost 10.
+-- Seeds (login: CNPJ com/sem máscara; senha = CNPJ só dígitos).
 INSERT INTO companies (name, cnpj, password_hash) VALUES (
   'Checkar Segurança do App',
   '26786637000149',
-  '$2b$10$q6/eVHFHFpYxlKaHDJmPueM9cyw/Qw.GNm8.53XDWuvxWhpKGt9kq'
+  '$2a$10$Vh//AwQ4LXwzBNsaItK2vOljW9D4M2rYY8sN9c8MFlrvx5max0HYm'
+) ON CONFLICT (cnpj) DO NOTHING;
+
+INSERT INTO companies (name, cnpj, password_hash) VALUES (
+  'RESTAURANTE DO QUEIJEIRO 3 LIMITADA',
+  '52191264000173',
+  '$2a$10$5faaPl2KUgL2HkTo0a2FPOOdHG7wBjhiVE8z.XaJA9SF8HvYUAjJq'
+) ON CONFLICT (cnpj) DO NOTHING;
+
+INSERT INTO companies (name, cnpj, password_hash) VALUES (
+  'RESTAURANTE DO QUEIJEIRO 4 LTDA',
+  '54803962000108',
+  '$2a$10$LMyi3tOwE.FOi0nn8Q1Qz.NNN40Su8LSWVuBgu7AlQipQ7MoaVviG'
 ) ON CONFLICT (cnpj) DO NOTHING;
 
 -- Empresa operacional (senha de login = CNPJ, alinhada a um DB_PASSWORD de exemplo em produção)

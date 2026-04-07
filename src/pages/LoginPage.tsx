@@ -47,7 +47,7 @@ const LoginPage = () => {
           </div>
           <CardTitle className="text-2xl">Gestão de Documentos</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            Acesse com o CNPJ da sua empresa
+            Login com CNPJ (pode usar máscara) e senha com os números do CNPJ
           </p>
         </CardHeader>
         <CardContent>
