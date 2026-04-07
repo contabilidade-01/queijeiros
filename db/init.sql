@@ -46,10 +46,16 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Seed: empresa padrão (senha: 26786637000149)
--- Hash gerado com bcrypt cost 10
+-- Seeds (login: CNPJ só dígitos + senha indicada). bcrypt cost 10.
 INSERT INTO companies (name, cnpj, password_hash) VALUES (
   'Checkar Segurança do App',
   '26786637000149',
   '$2b$10$q6/eVHFHFpYxlKaHDJmPueM9cyw/Qw.GNm8.53XDWuvxWhpKGt9kq'
+) ON CONFLICT (cnpj) DO NOTHING;
+
+-- Empresa operacional (senha de login = CNPJ, alinhada a um DB_PASSWORD de exemplo em produção)
+INSERT INTO companies (name, cnpj, password_hash) VALUES (
+  'Gestão Empresa',
+  '35736034000123',
+  '$2a$10$4IXJRYObvEzVNQutX51uq.uuQBbijm.k1zfVnLNY2hSSL8aDjPH4a'
 ) ON CONFLICT (cnpj) DO NOTHING;

@@ -20,6 +20,21 @@ Para produção na VPS com os três serviços, o caminho alinhado ao repo é **D
 4. **Domínio** (ex.: `app.gestaoempresa.com`): DNS com registo **A** para o IP da VPS; no Easypanel em **Serviço Compose** usa **`web`** (Nginx) e **porta 80**, e ativa **HTTPS**.
 5. **Auto Deploy**: nas definições da fonte Git no Easypanel, ativar para redeploy a cada push (webhook no GitHub).
 
+### Postgres `rhapp` vs `DB_PASSWORD` (Erro "password authentication failed")
+
+Se mudares `DB_PASSWORD` no painel **depois** do volume `pgdata` já existir, o utilizador `rhapp` no Postgres **mantém a palavra-passe antiga**. A API passa a falhar (`/api/health` com `database: "down"`).
+
+**Opção rápida:** na consola do contentor **postgres**, executa o SQL em **`db/fix-rhapp-password.sql`** (altera `ALTER USER` para a mesma string que `DB_PASSWORD`). **Ou** apaga o volume `pgdata` e volta a implantar (perdes dados dessa BD; o `db/init.sql` corre outra vez).
+
+### Login inicial (após `init.sql`)
+
+| Empresa (exemplo) | CNPJ (só números) | Senha |
+|-------------------|-------------------|--------|
+| Gestão Empresa | `35736034000123` | `35736034000123` |
+| Checkar Segurança do App | `26786637000149` | `26786637000149` |
+
+Se a BD já tinha sido criada antes deste seed, corre também **`db/seed-company-35736034000123.sql`** uma vez no Postgres.
+
 ---
 
 ## Deploy no Easypanel
