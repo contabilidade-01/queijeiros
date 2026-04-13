@@ -1,3 +1,5 @@
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import { maskCNPJ } from "@/lib/masks";
 
 /** Desconto agregado no recibo ad hoc (vale, adiantamento, farmácia, alimentação). */
@@ -29,164 +31,6 @@ function moneyPt(n: number): string {
   });
 }
 
-function buildDocDefinition(data: AdhocPayslipData) {
-  const digits = data.companyCnpjDigits.replace(/\D/g, "").slice(0, 14);
-  const cnpjMask = digits.length ? maskCNPJ(digits) : "—";
-  const totalDesc = data.vale + data.outros;
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- pdfmake table rows are loosely typed
-  const rows: any[][] = [
-    [
-      { text: "Cód.", style: "th" },
-      { text: "Descrição", style: "th" },
-      { text: "Referência", style: "th", alignment: "right" },
-      { text: "Vencimentos", style: "th", alignment: "right" },
-      { text: "Descontos", style: "th", alignment: "right" },
-    ],
-    [
-      "8781",
-      {
-        stack: [
-          "SALÁRIO PROPORCIONAL (base ÷30 × dias líquidos)",
-          { text: `Modo: ${data.modoDescricao}`, fontSize: 8, color: "#444444" },
-          { text: `Faltas (${data.faltasCount}): ${data.faltaDatesText || "—"}`, fontSize: 8, color: "#444444" },
-        ],
-      },
-      { text: moneyPt(data.diasLiquidos), alignment: "right" },
-      { text: moneyPt(data.bruto), alignment: "right" },
-      { text: "—", alignment: "center" },
-    ],
-  ];
-
-  if (data.vale > 0) {
-    rows.push([
-      "",
-      ADHOC_VALE_COMPOSITE_LABEL,
-      { text: "—", alignment: "center" },
-      { text: "—", alignment: "center" },
-      { text: moneyPt(data.vale), alignment: "right" },
-    ]);
-  }
-  if (data.outros > 0) {
-    rows.push([
-      "",
-      "Outros descontos",
-      { text: "—", alignment: "center" },
-      { text: "—", alignment: "center" },
-      { text: moneyPt(data.outros), alignment: "right" },
-    ]);
-  }
-
-  return {
-    pageSize: "A4",
-    pageMargins: [40, 40, 40, 50],
-    defaultStyle: { font: "Roboto", fontSize: 10 },
-    styles: {
-      th: { bold: true, fillColor: "#eeeeee", fontSize: 9 },
-      title: { fontSize: 13, bold: true, alignment: "center" },
-      sub: { fontSize: 9, alignment: "center", color: "#555555" },
-    },
-    content: [
-      { text: "RECIBO DE PAGAMENTO DE SALÁRIO — CÁLCULO AVULSO", style: "title", margin: [0, 0, 0, 4] },
-      {
-        text: "Experiência / treino — conferir com DP ou contabilidade.",
-        style: "sub",
-        margin: [0, 0, 0, 16],
-      },
-      {
-        columns: [
-          {
-            width: "*",
-            stack: [
-              { text: data.companyName || "—", bold: true, fontSize: 11 },
-              { text: `CNPJ: ${cnpjMask}`, fontSize: 9 },
-            ],
-          },
-          {
-            width: "auto",
-            stack: [
-              { text: "Folha mensal", bold: true, alignment: "right", fontSize: 10 },
-              { text: data.refMonthTitle, alignment: "right", fontSize: 10 },
-            ],
-          },
-        ],
-        margin: [0, 0, 0, 10],
-      },
-      {
-        columns: [
-          { width: 80, text: `Código: ${data.employeeCode}`, fontSize: 9 },
-          { width: "*", text: `Nome do funcionário: ${data.employeeName}`, fontSize: 10 },
-        ],
-        margin: [0, 0, 0, 14],
-      },
-      {
-        table: {
-          headerRows: 1,
-          widths: [28, "*", 52, 58, 58],
-          body: rows,
-        },
-        layout: {
-          hLineWidth: () => 0.5,
-          vLineWidth: () => 0.5,
-          paddingLeft: () => 4,
-          paddingRight: () => 4,
-          paddingTop: () => 3,
-          paddingBottom: () => 3,
-        },
-        margin: [0, 0, 0, 14],
-      },
-      {
-        table: {
-          widths: ["*", 70, 70, 75],
-          body: [
-            [
-              {
-                stack: [
-                  { text: `Salário base (contratual): R$ ${moneyPt(data.salarioBase)}`, fontSize: 9 },
-                  {
-                    text: `Dias brutos: ${data.diasBrutos} · Valor/dia (base÷30): R$ ${moneyPt(data.valorDia)}`,
-                    fontSize: 8,
-                    color: "#444444",
-                  },
-                ],
-              },
-              {
-                stack: [
-                  { text: "Total vencimentos", bold: true, fontSize: 9 },
-                  { text: `R$ ${moneyPt(data.bruto)}`, bold: true, alignment: "right", fontSize: 11 },
-                ],
-              },
-              {
-                stack: [
-                  { text: "Total descontos", bold: true, fontSize: 9 },
-                  { text: `R$ ${moneyPt(totalDesc)}`, bold: true, alignment: "right", fontSize: 11 },
-                ],
-              },
-              {
-                stack: [
-                  { text: "Valor líquido", bold: true, fontSize: 9 },
-                  { text: `R$ ${moneyPt(data.liquido)}`, bold: true, alignment: "right", fontSize: 12 },
-                ],
-              },
-            ],
-          ],
-        },
-        layout: "lightHorizontalLines",
-        margin: [0, 0, 0, 28],
-      },
-      {
-        text: "Declaro ter recebido a importância líquida discriminada neste recibo.",
-        alignment: "center",
-        fontSize: 10,
-        margin: [0, 0, 0, 8],
-      },
-      { text: "Data: _____ / _____ / _________", alignment: "center", fontSize: 10, margin: [0, 0, 0, 20] },
-      { text: "____________________________________", alignment: "center", margin: [0, 0, 0, 4] },
-      { text: "Assinatura do funcionário", alignment: "center", fontSize: 8, color: "#555555" },
-    ],
-  };
-}
-
 function buildFileName(data: AdhocPayslipData): string {
   const safe = data.employeeName
     .replace(/\s+/g, "_")
@@ -195,24 +39,125 @@ function buildFileName(data: AdhocPayslipData): string {
   return `holerite_avulso_${safe || "funcionario"}_${monthSafe || "ref"}.pdf`;
 }
 
-/** Gera e descarrega o recibo em PDF (pdfmake + Roboto, carregamento dinâmico). */
+type DocWithAutoTable = jsPDF & { lastAutoTable?: { finalY: number } };
+
+/**
+ * Recibo em PDF via jsPDF + jspdf-autotable (Helvetica integrada, sem .ttf nem VFS).
+ * Evita erros do tipo "Roboto-Medium.ttf not found" do pdfmake em produção.
+ */
 export async function downloadAdhocPayslipPdf(data: AdhocPayslipData): Promise<void> {
-  const [{ default: pdfMake }, pdfFontsMod] = await Promise.all([
-    import("pdfmake/build/pdfmake"),
-    import("pdfmake/build/vfs_fonts"),
-  ]);
+  const digits = data.companyCnpjDigits.replace(/\D/g, "").slice(0, 14);
+  const cnpjMask = digits.length ? maskCNPJ(digits) : "-";
+  const totalDesc = data.vale + data.outros;
 
-  const vfs = (pdfFontsMod as { default?: Record<string, string> }).default ?? pdfFontsMod;
-  (pdfMake as { vfs: Record<string, string> }).vfs = vfs;
+  const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+  const pageW = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  let y = margin;
 
-  const dd = buildDocDefinition(data);
-  const fileName = buildFileName(data);
+  const descSalario =
+    `SALARIO PROPORCIONAL (base / 30 x dias liquidos)\n` +
+    `Modo: ${data.modoDescricao}\n` +
+    `Faltas (${data.faltasCount}): ${data.faltaDatesText || "-"}`;
 
-  return new Promise((resolve, reject) => {
-    try {
-      pdfMake.createPdf(dd).download(fileName, () => resolve());
-    } catch (e) {
-      reject(e);
-    }
+  const bodyRows: string[][] = [
+    [
+      "8781",
+      descSalario,
+      moneyPt(data.diasLiquidos),
+      moneyPt(data.bruto),
+      "-",
+    ],
+  ];
+  if (data.vale > 0) {
+    bodyRows.push(["", ADHOC_VALE_COMPOSITE_LABEL, "-", "-", moneyPt(data.vale)]);
+  }
+  if (data.outros > 0) {
+    bodyRows.push(["", "Outros descontos", "-", "-", moneyPt(data.outros)]);
+  }
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.text("RECIBO DE PAGAMENTO DE SALARIO - CALCULO AVULSO", pageW / 2, y, { align: "center" });
+  y += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Experiencia / treino - conferir com DP ou contabilidade.", pageW / 2, y, { align: "center" });
+  doc.setTextColor(0, 0, 0);
+  y += 8;
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "bold");
+  doc.text(data.companyName || "-", margin, y);
+  doc.text("Folha mensal", pageW - margin, y, { align: "right" });
+  y += 5;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  doc.text(`CNPJ: ${cnpjMask}`, margin, y);
+  doc.text(data.refMonthTitle, pageW - margin, y, { align: "right" });
+  y += 7;
+
+  doc.setFontSize(9);
+  doc.text(`Codigo: ${data.employeeCode}`, margin, y);
+  doc.text(`Nome do funcionario: ${data.employeeName}`, margin + 32, y);
+  y += 6;
+
+  autoTable(doc, {
+    startY: y,
+    head: [["Cod.", "Descricao", "Referencia", "Vencimentos", "Descontos"]],
+    body: bodyRows,
+    theme: "grid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 1.5, valign: "middle" },
+    headStyles: { fillColor: [230, 230, 230], textColor: 0, fontStyle: "bold" },
+    columnStyles: {
+      0: { cellWidth: 14 },
+      1: { cellWidth: "auto" },
+      2: { halign: "right", cellWidth: 22 },
+      3: { halign: "right", cellWidth: 26 },
+      4: { halign: "right", cellWidth: 26 },
+    },
+    margin: { left: margin, right: margin },
   });
+
+  const d = doc as DocWithAutoTable;
+  y = (d.lastAutoTable?.finalY ?? y) + 4;
+
+  autoTable(doc, {
+    startY: y,
+    body: [
+      [
+        `Salario base (contratual): R$ ${moneyPt(data.salarioBase)}\nDias brutos: ${data.diasBrutos} - Valor/dia (base/30): R$ ${moneyPt(data.valorDia)}`,
+        `Total vencimentos\nR$ ${moneyPt(data.bruto)}`,
+        `Total descontos\nR$ ${moneyPt(totalDesc)}`,
+        `Valor liquido\nR$ ${moneyPt(data.liquido)}`,
+      ],
+    ],
+    theme: "grid",
+    styles: { font: "helvetica", fontSize: 8, cellPadding: 2, valign: "middle" },
+    columnStyles: {
+      0: { fontStyle: "normal" },
+      1: { fontStyle: "bold", halign: "right", cellWidth: 28 },
+      2: { fontStyle: "bold", halign: "right", cellWidth: 28 },
+      3: { fontStyle: "bold", halign: "right", fontSize: 9, cellWidth: 30 },
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  y = (d.lastAutoTable?.finalY ?? y) + 10;
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.text("Declaro ter recebido a importancia liquida discriminada neste recibo.", pageW / 2, y, {
+    align: "center",
+  });
+  y += 7;
+  doc.text("Data: _____ / _____ / _________", pageW / 2, y, { align: "center" });
+  y += 12;
+  doc.text("____________________________________", pageW / 2, y, { align: "center" });
+  y += 5;
+  doc.setFontSize(8);
+  doc.setTextColor(80, 80, 80);
+  doc.text("Assinatura do funcionario", pageW / 2, y, { align: "center" });
+
+  doc.save(buildFileName(data));
 }
