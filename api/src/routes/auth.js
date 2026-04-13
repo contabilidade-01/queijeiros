@@ -3,7 +3,9 @@ const rateLimit = require("express-rate-limit");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const db = require("../db");
-const { generateToken, generateAdminToken } = require("../middleware/auth");
+const { generateToken, generateAdminToken, authMiddleware } = require("../middleware/auth");
+const { mergeToolAccess } = require("../companyTools");
+const { getCompanyByCnpjForLogin } = require("../toolAccessDb");
 const {
   validateCNPJ,
   validateString,
@@ -44,6 +46,22 @@ function hashToken(raw) {
   return crypto.createHash("sha256").update(raw, "utf8").digest("hex");
 }
 
+/** Senhas na BD são quase sempre só dígitos; o utilizador pode digitar com máscara (CPF/CNPJ). */
+function passwordVariants(password) {
+  const s = String(password);
+  const digits = s.replace(/\D/g, "");
+  if (!digits) return [s];
+  const set = new Set([s, digits]);
+  return [...set];
+}
+
+async function bcryptMatches(storedHash, password) {
+  for (const candidate of passwordVariants(password)) {
+    if (await bcrypt.compare(candidate, storedHash)) return true;
+  }
+  return false;
+}
+
 const GENERIC_FORGOT_MSG =
   "Se os dados estiverem corretos e houver e-mail cadastrado, você receberá um link em instantes.";
 
@@ -69,7 +87,7 @@ router.post("/login", async (req, res) => {
       );
       if (!rows.length) return res.status(401).json({ error: "Acesso não encontrado" });
       const adm = rows[0];
-      const ok = await bcrypt.compare(password, adm.password_hash);
+      const ok = await bcryptMatches(adm.password_hash, password);
       if (!ok) return res.status(401).json({ error: "Senha incorreta" });
       const token = generateAdminToken({ id: adm.id, cpf: adm.cpf });
       return res.json({
@@ -84,13 +102,10 @@ router.post("/login", async (req, res) => {
       if (!validateCNPJ(raw)) {
         return res.status(400).json({ error: "CNPJ inválido" });
       }
-      const { rows } = await db.query(
-        "SELECT id, name, cnpj, password_hash FROM companies WHERE cnpj = $1",
-        [clean]
-      );
+      const rows = await getCompanyByCnpjForLogin(db, clean);
       if (!rows.length) return res.status(401).json({ error: "Empresa não encontrada" });
       const company = rows[0];
-      const valid = await bcrypt.compare(password, company.password_hash);
+      const valid = await bcryptMatches(company.password_hash, password);
       if (!valid) return res.status(401).json({ error: "Senha incorreta" });
       const token = generateToken({
         company_id: company.id,
@@ -100,7 +115,12 @@ router.post("/login", async (req, res) => {
       return res.json({
         token,
         role: "company",
-        company: { id: company.id, name: company.name, cnpj: company.cnpj },
+        company: {
+          id: company.id,
+          name: company.name,
+          cnpj: company.cnpj,
+          tool_access: mergeToolAccess(company.tool_access),
+        },
       });
     }
 
@@ -302,6 +322,24 @@ router.post("/reset-password", resetPasswordLimiter, async (req, res) => {
     console.error("reset-password:", err.message);
     res.status(500).json({ error: "Erro interno" });
   }
+});
+
+/** Atualizar nome da empresa e permissões (tool_access) sem novo login — usa o mesmo Bearer. */
+router.get("/company-session", authMiddleware, (req, res) => {
+  if (req.isAdmin) {
+    return res.status(400).json({ error: "Este recurso é só para login de empresa (CNPJ)." });
+  }
+  if (!req.company?.id) {
+    return res.status(401).json({ error: "Sessão inválida" });
+  }
+  res.json({
+    company: {
+      id: req.company.id,
+      name: req.company.name,
+      cnpj: req.company.cnpj,
+    },
+    tool_access: req.companyToolAccess,
+  });
 });
 
 module.exports = router;

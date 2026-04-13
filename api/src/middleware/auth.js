@@ -1,4 +1,6 @@
 const jwt = require("jsonwebtoken");
+const db = require("../db");
+const { getToolAccessForCompany } = require("../toolAccessDb");
 
 const JWT_SECRET = process.env.JWT_SECRET || "change-this-secret-in-production";
 const JWT_EXPIRES = "8h";
@@ -17,7 +19,7 @@ function generateAdminToken(admin) {
   );
 }
 
-function authMiddleware(req, res, next) {
+async function authMiddleware(req, res, next) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith("Bearer ")) {
     return res.status(401).json({ error: "Token não fornecido" });
@@ -30,6 +32,7 @@ function authMiddleware(req, res, next) {
       req.isAdmin = true;
       req.admin = { id: decoded.admin_id, cpf: decoded.admin_cpf || "" };
       req.company = null;
+      req.companyToolAccess = null;
     } else if (decoded.company_id) {
       req.isAdmin = false;
       req.admin = null;
@@ -38,6 +41,7 @@ function authMiddleware(req, res, next) {
         name: decoded.company_name,
         cnpj: decoded.company_cnpj,
       };
+      req.companyToolAccess = await getToolAccessForCompany(db, decoded.company_id);
     } else {
       return res.status(401).json({ error: "Token inválido" });
     }

@@ -5,6 +5,7 @@ const path = require("path");
 const db = require("./db");
 const { ensurePlatformAdmins } = require("./ensurePlatformAdmins");
 const { ensurePasswordResetSchema } = require("./ensurePasswordResetSchema");
+const { ensureToolAccessSchema } = require("./ensureToolAccessSchema");
 const { deleteInactiveEmployeesOnStartup } = require("./deleteInactiveEmployeesOnStartup");
 
 const app = express();
@@ -41,6 +42,7 @@ async function start() {
   try {
     await ensurePlatformAdmins(db);
     await ensurePasswordResetSchema(db);
+    await ensureToolAccessSchema(db);
     await deleteInactiveEmployeesOnStartup(db);
   } catch (err) {
     console.error("Startup DB tasks:", err.message);

@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const db = require("../db");
 const { authMiddleware, requireCompanyUser } = require("../middleware/auth");
+const { companyHasAnyTool, companyHasTool, EMPLOYEE_LIST_TOOLS } = require("../middleware/companyToolAccess");
 const { validateCPF, validateString, validateUUID } = require("../middleware/validate");
 
 // All routes require auth
@@ -32,6 +33,12 @@ router.get("/", async (req, res) => {
       );
       return res.json(rows);
     }
+    if (!req.company?.id) {
+      return res.status(403).json({ error: "Sessão de empresa inválida" });
+    }
+    if (!companyHasAnyTool(req, EMPLOYEE_LIST_TOOLS)) {
+      return res.status(403).json({ error: "Esta ferramenta não está ativa para a sua empresa." });
+    }
     const companyId = req.company.id;
     const { rows } = await db.query(
       "SELECT * FROM employees WHERE company_id = $1 ORDER BY name",
@@ -44,7 +51,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", requireCompanyUser, async (req, res) => {
+router.post("/", requireCompanyUser, (req, res, next) => {
+  if (!companyHasTool(req, "employees")) {
+    return res.status(403).json({ error: "Cadastro de funcionários não está ativo para a sua empresa." });
+  }
+  next();
+}, async (req, res) => {
   try {
     const companyId = req.company.id;
     const { name, cpf, pis } = req.body;
@@ -70,7 +82,12 @@ router.post("/", requireCompanyUser, async (req, res) => {
   }
 });
 
-router.post("/import", requireCompanyUser, async (req, res) => {
+router.post("/import", requireCompanyUser, (req, res, next) => {
+  if (!companyHasTool(req, "employees")) {
+    return res.status(403).json({ error: "Cadastro de funcionários não está ativo para a sua empresa." });
+  }
+  next();
+}, async (req, res) => {
   const companyId = req.company.id;
   const companyCnpj = (req.company.cnpj || "").replace(/\D/g, "");
   const fileCnpj = (req.body?.fileCnpj || "").toString().replace(/\D/g, "");
@@ -177,6 +194,9 @@ router.put("/:id", async (req, res) => {
       return res.json(rows[0]);
     }
 
+    if (!companyHasTool(req, "employees")) {
+      return res.status(403).json({ error: "Cadastro de funcionários não está ativo para a sua empresa." });
+    }
     const companyId = req.company.id;
     vals.push(req.params.id);
     vals.push(companyId);
@@ -201,6 +221,9 @@ router.delete("/:id", async (req, res) => {
       const { rowCount } = await db.query("DELETE FROM employees WHERE id=$1", [req.params.id]);
       if (!rowCount) return res.status(404).json({ error: "Funcionário não encontrado" });
       return res.json({ ok: true });
+    }
+    if (!companyHasTool(req, "employees")) {
+      return res.status(403).json({ error: "Cadastro de funcionários não está ativo para a sua empresa." });
     }
     const companyId = req.company.id;
     const { rowCount } = await db.query(

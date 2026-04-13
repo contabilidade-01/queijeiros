@@ -29,6 +29,14 @@ import { ptBR } from "date-fns/locale";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { maskCNPJ } from "@/lib/masks";
+import {
+  COMPANY_TOOL_KEYS,
+  COMPANY_TOOL_LABELS,
+  mergeClientToolAccess,
+  type CompanyToolAccess,
+  type CompanyToolKey,
+} from "@/lib/companyTools";
+import { Switch } from "@/components/ui/switch";
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -439,17 +447,20 @@ function CompanyManageRow({
     cnpj: string;
     contact_email: string | null;
     phone: string | null;
+    tool_access: CompanyToolAccess;
   };
 }) {
   const [name, setName] = useState(company.name);
   const [email, setEmail] = useState(company.contact_email ?? "");
   const [phone, setPhone] = useState(company.phone ?? "");
+  const [tools, setTools] = useState<CompanyToolAccess>(() => mergeClientToolAccess(company.tool_access));
 
   useEffect(() => {
     setName(company.name);
     setEmail(company.contact_email ?? "");
     setPhone(company.phone ?? "");
-  }, [company.name, company.contact_email, company.phone]);
+    setTools(mergeClientToolAccess(company.tool_access));
+  }, [company.name, company.contact_email, company.phone, company.tool_access]);
 
   const queryClient = useQueryClient();
 
@@ -468,6 +479,19 @@ function CompanyManageRow({
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const saveTools = useMutation({
+    mutationFn: () => api.admin.updateCompany(company.id, { tool_access: tools }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-companies"] });
+      toast.success("Permissões das ferramentas atualizadas");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleTool = (key: CompanyToolKey, checked: boolean) => {
+    setTools((prev) => ({ ...prev, [key]: checked }));
+  };
 
   return (
     <div className="rounded-lg border bg-card/50 p-4 space-y-3 scroll-mt-2">
@@ -504,6 +528,46 @@ function CompanyManageRow({
       <Button type="button" size="sm" onClick={() => mut.mutate()} disabled={mut.isPending}>
         Guardar alterações
       </Button>
+
+      <div className="border-t pt-4 mt-4 space-y-3">
+        <div>
+          <p className="text-xs font-semibold text-foreground">Ferramentas no app da empresa</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Ligue ou desligue o acesso a cada módulo (menu após login com CNPJ). O servidor aplica de imediato;
+            ao abrir o início da aplicação, o menu sincroniza com estas permissões.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {COMPANY_TOOL_KEYS.map((key) => {
+            const meta = COMPANY_TOOL_LABELS[key];
+            return (
+              <div
+                key={key}
+                className="flex items-center justify-between gap-3 rounded-md border bg-background/60 px-3 py-2"
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium leading-tight">{meta.title}</p>
+                  <p className="text-xs text-muted-foreground">{meta.description}</p>
+                </div>
+                <Switch
+                  checked={tools[key]}
+                  onCheckedChange={(c) => toggleTool(key, c)}
+                  aria-label={meta.title}
+                />
+              </div>
+            );
+          })}
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => saveTools.mutate()}
+          disabled={saveTools.isPending}
+        >
+          Guardar permissões das ferramentas
+        </Button>
+      </div>
     </div>
   );
 }

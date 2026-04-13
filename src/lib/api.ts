@@ -1,4 +1,45 @@
-const API_BASE = import.meta.env.VITE_API_URL || "/api";
+const rawApiBase = (import.meta.env.VITE_API_URL as string | undefined)?.trim() || "/api";
+const API_BASE = rawApiBase.replace(/\/+$/, "") || "/api";
+
+function normalizeResponseText(text: string): string {
+  return text.replace(/^\uFEFF/, "").trimStart();
+}
+
+/** JSON válido nunca começa por '<' após trim; HTML/XML quase sempre sim. */
+function isProbablyHtmlBody(text: string, contentType: string): boolean {
+  if (/text\/html/i.test(contentType)) return true;
+  const t = normalizeResponseText(text);
+  return t.startsWith("<");
+}
+
+/**
+ * Evita "Unexpected token '<'" quando o host devolve index.html (SPA) em vez da API.
+ * Comum em produção só com front: sem VITE_API_URL o browser pede /api no mesmo domínio e recebe HTML.
+ */
+async function parseResponseJson<T>(res: Response): Promise<T> {
+  const text = await res.text();
+  const ct = res.headers.get("content-type") || "";
+  const hint = import.meta.env.VITE_API_URL
+    ? " Confirme se VITE_API_URL está correto e se a API está acessível."
+    : " Defina VITE_API_URL no build (URL público da API Node, terminando em /api, ex.: https://api.seudominio.com/api) ou use um proxy que encaminhe /api para o backend.";
+
+  if (isProbablyHtmlBody(text, ct)) {
+    throw new Error(`A API não respondeu em JSON (foi recebido HTML).${hint}`);
+  }
+  try {
+    return JSON.parse(text) as T;
+  } catch (e) {
+    const head = normalizeResponseText(text).slice(0, 120).toLowerCase();
+    if (head.startsWith("<!doctype") || head.startsWith("<html") || head.startsWith("<")) {
+      throw new Error(`A API não respondeu em JSON (foi recebido HTML).${hint}`);
+    }
+    const msg = e instanceof Error ? e.message : "";
+    if (/unexpected token.*</i.test(msg) || /not valid json/i.test(msg)) {
+      throw new Error(`Resposta não é JSON válido.${hint}`);
+    }
+    throw new Error(normalizeResponseText(text).slice(0, 200) || "Resposta inválida do servidor.");
+  }
+}
 
 /** Rotas públicas (login, recuperação de senha): sem Bearer e sem redirecionar em 401 */
 async function publicRequest<T>(path: string, options?: RequestInit): Promise<T> {
@@ -7,11 +48,12 @@ async function publicRequest<T>(path: string, options?: RequestInit): Promise<T>
     ...(options?.headers as Record<string, string>),
   };
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const data = await parseResponseJson<unknown>(res);
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Erro de rede" }));
+    const err = data as { error?: string };
     throw new Error(err.error || `HTTP ${res.status}`);
   }
-  return res.json();
+  return data as T;
 }
 
 function getToken(): string | null {
@@ -36,6 +78,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers });
+  const data = await parseResponseJson<unknown>(res);
 
   if (res.status === 401) {
     // Token expired - clear session and redirect to login
@@ -45,15 +88,29 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: "Erro de rede" }));
+    const err = data as { error?: string };
     throw new Error(err.error || `HTTP ${res.status}`);
   }
-  return res.json();
+  return data as T;
 }
+
+export type CompanyToolAccessApi = {
+  suspension: boolean;
+  warning: boolean;
+  chatbot: boolean;
+  salary_adhoc: boolean;
+  employees: boolean;
+  certificates: boolean;
+  history: boolean;
+};
 
 export type LoginResponse =
   | { token: string; role: "admin"; admin: { id: string; cpf: string } }
-  | { token: string; role: "company"; company: { id: string; name: string; cnpj: string } };
+  | {
+      token: string;
+      role: "company";
+      company: { id: string; name: string; cnpj: string; tool_access?: CompanyToolAccessApi };
+    };
 
 export const api = {
   auth: {
@@ -74,6 +131,11 @@ export const api = {
         method: "POST",
         body: JSON.stringify({ token, password }),
       }),
+    /** Sessão de empresa: devolve tool_access atual (após admin alterar permissões). Requer Bearer. */
+    companySession: () =>
+      request<{ company: { id: string; name: string; cnpj: string }; tool_access: CompanyToolAccessApi }>(
+        "/auth/company-session"
+      ),
   },
 
   admin: {
@@ -96,6 +158,7 @@ export const api = {
           cnpj: string;
           contact_email: string | null;
           phone: string | null;
+          tool_access: CompanyToolAccessApi;
           created_at: string;
         }>
       >("/admin/companies"),
@@ -112,13 +175,19 @@ export const api = {
           cnpj: string;
           contact_email: string | null;
           phone: string | null;
+          tool_access: CompanyToolAccessApi;
           created_at: string;
         };
         message: string;
       }>("/admin/companies", { method: "POST", body: JSON.stringify(data) }),
     updateCompany: (
       companyId: string,
-      data: { name?: string; contact_email?: string | null; phone?: string | null }
+      data: {
+        name?: string;
+        contact_email?: string | null;
+        phone?: string | null;
+        tool_access?: CompanyToolAccessApi;
+      }
     ) =>
       request<{
         id: string;
@@ -126,6 +195,7 @@ export const api = {
         cnpj: string;
         contact_email: string | null;
         phone: string | null;
+        tool_access: CompanyToolAccessApi;
         created_at: string;
       }>(`/admin/companies/${companyId}`, {
         method: "PATCH",
@@ -210,16 +280,17 @@ export const api = {
         body: formData,
         headers,
       });
+      const data = await parseResponseJson<unknown>(res);
       if (res.status === 401) {
         localStorage.removeItem("company_session");
         window.location.href = "/login";
         throw new Error("Sessão expirada");
       }
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Erro de rede" }));
+        const err = data as { error?: string };
         throw new Error(err.error || `HTTP ${res.status}`);
       }
-      return res.json();
+      return data;
     },
     delete: (id: string) =>
       request(`/certificates/${id}`, { method: "DELETE" }),

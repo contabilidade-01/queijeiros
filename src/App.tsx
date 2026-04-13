@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { isToolAllowed, type CompanyToolKey } from "@/lib/companyTools";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -34,6 +35,25 @@ function CompanyOnlyRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function CompanyToolRoute({ tool, children }: { tool: CompanyToolKey; children: React.ReactNode }) {
+  const { isLoggedIn, isAdmin, company } = useAuth();
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (isAdmin) return <Navigate to="/admin" replace />;
+  if (!company) return <Navigate to="/login" replace />;
+  if (!isToolAllowed(company.toolAccess, tool)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
+/** Histórico: admin vê tudo; empresa só se a ferramenta estiver ativa */
+function HistoryAccessRoute({ children }: { children: React.ReactNode }) {
+  const { isLoggedIn, isAdmin, company } = useAuth();
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (isAdmin) return <>{children}</>;
+  if (!company) return <Navigate to="/login" replace />;
+  if (!isToolAllowed(company.toolAccess, "history")) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 function AdminOnlyRoute({ children }: { children: React.ReactNode }) {
   const { isLoggedIn, isAdmin } = useAuth();
   if (!isLoggedIn) return <Navigate to="/login" replace />;
@@ -48,13 +68,13 @@ const AppRoutes = () => (
     <Route path="/reset-password" element={<ResetPasswordPage />} />
     <Route path="/admin" element={<AdminOnlyRoute><AdminPage /></AdminOnlyRoute>} />
     <Route path="/" element={<CompanyOnlyRoute><Index /></CompanyOnlyRoute>} />
-    <Route path="/suspensao" element={<CompanyOnlyRoute><SuspensionPage /></CompanyOnlyRoute>} />
-    <Route path="/advertencia" element={<CompanyOnlyRoute><WarningPage /></CompanyOnlyRoute>} />
-    <Route path="/historico" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />
-    <Route path="/funcionarios" element={<CompanyOnlyRoute><EmployeesPage /></CompanyOnlyRoute>} />
-    <Route path="/chatbot" element={<CompanyOnlyRoute><ChatbotPage /></CompanyOnlyRoute>} />
-    <Route path="/salario-avulso" element={<CompanyOnlyRoute><SalaryAdhocPage /></CompanyOnlyRoute>} />
-    <Route path="/atestados" element={<CompanyOnlyRoute><CertificatesPage /></CompanyOnlyRoute>} />
+    <Route path="/suspensao" element={<CompanyToolRoute tool="suspension"><SuspensionPage /></CompanyToolRoute>} />
+    <Route path="/advertencia" element={<CompanyToolRoute tool="warning"><WarningPage /></CompanyToolRoute>} />
+    <Route path="/historico" element={<HistoryAccessRoute><HistoryPage /></HistoryAccessRoute>} />
+    <Route path="/funcionarios" element={<CompanyToolRoute tool="employees"><EmployeesPage /></CompanyToolRoute>} />
+    <Route path="/chatbot" element={<CompanyToolRoute tool="chatbot"><ChatbotPage /></CompanyToolRoute>} />
+    <Route path="/salario-avulso" element={<CompanyToolRoute tool="salary_adhoc"><SalaryAdhocPage /></CompanyToolRoute>} />
+    <Route path="/atestados" element={<CompanyToolRoute tool="certificates"><CertificatesPage /></CompanyToolRoute>} />
     <Route path="*" element={<NotFound />} />
   </Routes>
 );

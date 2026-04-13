@@ -4,6 +4,7 @@ const path = require("path");
 const fs = require("fs");
 const db = require("../db");
 const { authMiddleware, requireCompanyUser } = require("../middleware/auth");
+const { companyHasTool } = require("../middleware/companyToolAccess");
 const { validateUUID, validateDate, validateString } = require("../middleware/validate");
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "/app/uploads";
@@ -43,6 +44,12 @@ router.get("/", async (req, res) => {
         sql += ` AND mc.company_id = $${params.length}`;
       }
     } else {
+      if (!req.company?.id) {
+        return res.status(403).json({ error: "Sessão de empresa inválida" });
+      }
+      if (!companyHasTool(req, "certificates")) {
+        return res.status(403).json({ error: "Atestados não estão ativos para a sua empresa." });
+      }
       const companyId = req.company.id;
       params.push(companyId);
       sql = `SELECT mc.*, e.name AS employee_name 
@@ -69,7 +76,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.post("/", requireCompanyUser, upload.single("file"), async (req, res) => {
+router.post("/", requireCompanyUser, (req, res, next) => {
+  if (!companyHasTool(req, "certificates")) {
+    return res.status(403).json({ error: "Atestados não estão ativos para a sua empresa." });
+  }
+  next();
+}, upload.single("file"), async (req, res) => {
   try {
     const companyId = req.company.id;
     const { employee_id, certificate_date, notes } = req.body;
@@ -131,6 +143,9 @@ router.delete("/:id", async (req, res) => {
       );
       rows = r.rows;
     } else {
+      if (!companyHasTool(req, "certificates")) {
+        return res.status(403).json({ error: "Atestados não estão ativos para a sua empresa." });
+      }
       const companyId = req.company.id;
       const r = await db.query(
         "DELETE FROM medical_certificates WHERE id=$1 AND company_id=$2 RETURNING file_path",

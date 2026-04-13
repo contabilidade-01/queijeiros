@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS companies (
   password_hash TEXT NOT NULL,
   contact_email TEXT,
   phone TEXT,
+  tool_access JSONB DEFAULT '{"suspension":true,"warning":true,"chatbot":true,"salary_adhoc":true,"employees":true,"certificates":true,"history":true}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -56,6 +57,7 @@ CREATE TABLE IF NOT EXISTS medical_certificates (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Admin: login = CPF 05487541523 | senha inicial = 35736034000123 (não use o CPF como senha)
 INSERT INTO platform_admins (cpf, password_hash) VALUES (
   '05487541523',
   '$2a$10$P0E31oAGRjfkNOUZrd5.K..Wch43XC1WcK3HLiSYOQVK6DBlUbSaW'

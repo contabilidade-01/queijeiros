@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { mergeClientToolAccess, type CompanyToolAccess } from "@/lib/companyTools";
 
 export type CompanySession = {
   role: "company";
@@ -6,6 +7,7 @@ export type CompanySession = {
   name: string;
   cnpj: string;
   token: string;
+  toolAccess: CompanyToolAccess;
 };
 
 export type AdminSession = {
@@ -35,7 +37,14 @@ function parseStored(): AuthSession | null {
       typeof o.name === "string" &&
       typeof o.cnpj === "string"
     ) {
-      return { role: "company", id: o.id, name: o.name, cnpj: o.cnpj, token: o.token };
+      return {
+        role: "company",
+        id: o.id,
+        name: o.name,
+        cnpj: o.cnpj,
+        token: o.token,
+        toolAccess: mergeClientToolAccess(o.toolAccess ?? o.tool_access),
+      };
     }
 
     // Legado: sessão só de empresa sem campo role
@@ -45,7 +54,14 @@ function parseStored(): AuthSession | null {
       typeof o.cnpj === "string" &&
       o.token
     ) {
-      return { role: "company", id: o.id, name: o.name, cnpj: o.cnpj, token: o.token };
+      return {
+        role: "company",
+        id: o.id,
+        name: o.name,
+        cnpj: o.cnpj,
+        token: o.token,
+        toolAccess: mergeClientToolAccess(o.toolAccess ?? o.tool_access),
+      };
     }
     return null;
   } catch {

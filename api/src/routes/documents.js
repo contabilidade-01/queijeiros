@@ -1,6 +1,7 @@
 const router = require("express").Router();
 const db = require("../db");
 const { authMiddleware, requireCompanyUser } = require("../middleware/auth");
+const { companyHasTool } = require("../middleware/companyToolAccess");
 const { validateString, validateUUID, validateDate } = require("../middleware/validate");
 
 router.use(authMiddleware);
@@ -32,6 +33,12 @@ router.get("/", async (req, res) => {
       );
       return res.json(rows);
     }
+    if (!req.company?.id) {
+      return res.status(403).json({ error: "Sessão de empresa inválida" });
+    }
+    if (!companyHasTool(req, "history")) {
+      return res.status(403).json({ error: "Histórico de documentos não está ativo para a sua empresa." });
+    }
     const companyId = req.company.id;
     const { rows } = await db.query(
       "SELECT * FROM issued_documents WHERE company_id = $1 ORDER BY created_at DESC",
@@ -52,6 +59,12 @@ router.post("/", requireCompanyUser, async (req, res) => {
     const normalizedType = DOC_TYPE_ALIASES[d.document_type];
     if (!normalizedType) {
       return res.status(400).json({ error: "Tipo de documento inválido" });
+    }
+    if (normalizedType === "suspension" && !companyHasTool(req, "suspension")) {
+      return res.status(403).json({ error: "Suspensão não está ativa para a sua empresa." });
+    }
+    if (normalizedType === "warning" && !companyHasTool(req, "warning")) {
+      return res.status(403).json({ error: "Advertência não está ativa para a sua empresa." });
     }
     if (!validateString(d.employee_name, 2, 200)) {
       return res.status(400).json({ error: "Nome do funcionário inválido" });
@@ -90,6 +103,9 @@ router.delete("/:id", async (req, res) => {
       const { rowCount } = await db.query("DELETE FROM issued_documents WHERE id=$1", [req.params.id]);
       if (!rowCount) return res.status(404).json({ error: "Documento não encontrado" });
       return res.json({ ok: true });
+    }
+    if (!companyHasTool(req, "history")) {
+      return res.status(403).json({ error: "Histórico de documentos não está ativo para a sua empresa." });
     }
     const companyId = req.company.id;
     const { rowCount } = await db.query(

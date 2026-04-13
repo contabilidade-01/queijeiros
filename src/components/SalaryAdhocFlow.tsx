@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { CalendarIcon, Check, X, RefreshCw } from "lucide-react";
+import { CalendarIcon, Check, X, RefreshCw, Download } from "lucide-react";
 import { format, startOfMonth, parse } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,19 @@ import {
   type PeriodMode,
   type AdhocSalaryResult,
 } from "@/lib/calculateAdhocSalary";
+import { ADHOC_VALE_COMPOSITE_LABEL, downloadAdhocPayslipPdf } from "@/lib/generateAdhocPayslipPdf";
 import { toast } from "sonner";
+
+function periodModeLabel(m: PeriodMode): string {
+  switch (m) {
+    case "worked_days":
+      return "Quantidade de dias informada";
+    case "start_in_month":
+      return "Início no mês (até o fim do mês, corridos)";
+    case "closed_month":
+      return "Mês fechado (30 dias, menos faltas)";
+  }
+}
 
 type Step =
   | "employee_name"
@@ -170,7 +182,7 @@ export function SalaryAdhocFlow() {
       addUser("Sem faltas");
     }
     addBot(
-      "Valor do desconto de vale transporte/alimentação (R$). Use 0 se não houver — digite 0 e confirme."
+      `**${ADHOC_VALE_COMPOSITE_LABEL}** (R$) — valor total a descontar. Se não houver, digite **0** e confirme.`
     );
     setStep("vale");
   };
@@ -225,20 +237,64 @@ export function SalaryAdhocFlow() {
     addBot(
       `**Resultado**\n` +
         `• Funcionário: ${employeeName.trim()}\n` +
-        `• Valor/dia (base÷30): ${formatBRL(r.valorDia)}\n` +
-        `• Dias brutos: ${r.diasBrutos}\n` +
-        `• Faltas contadas: ${r.faltasCount}\n` +
-        `• Dias líquidos: ${r.diasLiquidos}\n` +
-        `• Bruto: ${formatBRL(r.bruto)}\n` +
-        `• Vale: ${formatBRL(r.descontoVale)}\n` +
-        `• Outros: ${formatBRL(r.descontosOutros)}\n` +
+        `• Salário base **contratual** (mês cheio, referência): ${formatBRL(base)}\n` +
+        `• Valor de um dia (base ÷ 30): ${formatBRL(r.valorDia)}\n` +
+        `• Dias brutos no período: ${r.diasBrutos} · Faltas: ${r.faltasCount} · **Dias líquidos pagos: ${r.diasLiquidos}**\n` +
+        `• **Bruto do período** (proporcional: valor/dia × dias líquidos): ${formatBRL(r.bruto)}\n` +
+        `• ${ADHOC_VALE_COMPOSITE_LABEL}: ${formatBRL(r.descontoVale)}\n` +
+        `• Outros descontos: ${formatBRL(r.descontosOutros)}\n` +
         `• **Líquido: ${formatBRL(r.liquido)}**\n\n` +
+        `_O bruto costuma ser menor que o salário contratual quando há menos de 30 dias líquidos no período (faltas ou período parcial)._\n` +
         `_Cálculo simplificado; confira com DP / contabilidade._`
     );
     if (company) {
       addBot(`Empresa: ${company.name}`);
     }
     setStep("result");
+  };
+
+  const handleDownloadPayslip = async () => {
+    if (!result || !periodMode || !refMonthStr || !refMonthDate) {
+      toast.error("Dados incompletos para o recibo");
+      return;
+    }
+    const base = parseMoneyBR(baseSalaryRaw);
+    if (base == null) {
+      toast.error("Salário base inválido");
+      return;
+    }
+    const faltaDatesText =
+      faltaDates.length > 0
+        ? [...faltaDates]
+            .sort((a, b) => a.getTime() - b.getTime())
+            .map((d) => format(d, "dd/MM/yyyy", { locale: ptBR }))
+            .join(", ")
+        : "";
+    const refTitleRaw = format(refMonthDate, "MMMM 'de' yyyy", { locale: ptBR });
+    const refMonthTitle = refTitleRaw.charAt(0).toUpperCase() + refTitleRaw.slice(1);
+    try {
+      await downloadAdhocPayslipPdf({
+        companyName: company?.name ?? "",
+        companyCnpjDigits: company?.cnpj ?? "",
+        refMonthTitle,
+        employeeName: employeeName.trim(),
+        employeeCode: "—",
+        salarioBase: base,
+        diasBrutos: result.diasBrutos,
+        faltasCount: result.faltasCount,
+        diasLiquidos: result.diasLiquidos,
+        valorDia: result.valorDia,
+        bruto: result.bruto,
+        vale: result.descontoVale,
+        outros: result.descontosOutros,
+        liquido: result.liquido,
+        faltaDatesText,
+        modoDescricao: periodModeLabel(periodMode),
+      });
+      toast.success("Recibo baixado (PDF)");
+    } catch {
+      toast.error("Não foi possível gerar o recibo");
+    }
   };
 
   const resetNewCalculation = () => {
@@ -440,7 +496,7 @@ export function SalaryAdhocFlow() {
           {step === "vale" && (
             <div className="space-y-2">
               <Input
-                placeholder="0,00"
+                placeholder={`${ADHOC_VALE_COMPOSITE_LABEL} — R$ (0 se não houver)`}
                 value={valeRaw}
                 onChange={(e) => setValeRaw(e.target.value)}
                 inputMode="decimal"
@@ -469,9 +525,14 @@ export function SalaryAdhocFlow() {
             <div className="rounded-lg border bg-card p-4 space-y-3">
               <p className="text-sm font-semibold">Resumo numérico</p>
               <ul className="text-xs space-y-1 text-muted-foreground">
+                <li>Salário base (contratual): {formatBRL(parseMoneyBR(baseSalaryRaw) ?? 0)}</li>
+                <li>Bruto proporcional: {formatBRL(result.bruto)}</li>
                 <li>Líquido: {formatBRL(result.liquido)}</li>
-                <li>Bruto: {formatBRL(result.bruto)}</li>
               </ul>
+              <Button className="w-full gap-2" onClick={handleDownloadPayslip}>
+                <Download className="h-4 w-4" />
+                Baixar recibo (PDF)
+              </Button>
               <Button variant="outline" className="w-full gap-2" onClick={resetNewCalculation}>
                 <RefreshCw className="h-4 w-4" />
                 Novo cálculo

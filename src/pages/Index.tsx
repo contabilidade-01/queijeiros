@@ -1,16 +1,27 @@
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { FileText, AlertTriangle, History, ChevronRight, Users, MessageSquare, LogOut, ClipboardList, Calculator } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { api } from "@/lib/api";
+import { isToolAllowed, mergeClientToolAccess, type CompanyToolKey } from "@/lib/companyTools";
 
-const menuItems = [
+const menuItems: Array<{
+  title: string;
+  description: string;
+  icon: typeof FileText;
+  path: string;
+  color: string;
+  tool: CompanyToolKey;
+}> = [
   {
     title: "Suspensão",
     description: "Gerar termo de suspensão",
     icon: FileText,
     path: "/suspensao",
     color: "bg-primary text-primary-foreground",
+    tool: "suspension",
   },
   {
     title: "Advertência",
@@ -18,6 +29,7 @@ const menuItems = [
     icon: AlertTriangle,
     path: "/advertencia",
     color: "bg-accent text-accent-foreground",
+    tool: "warning",
   },
   {
     title: "Assistente",
@@ -25,6 +37,7 @@ const menuItems = [
     icon: MessageSquare,
     path: "/chatbot",
     color: "bg-primary text-primary-foreground",
+    tool: "chatbot",
   },
   {
     title: "Salário avulso",
@@ -32,6 +45,7 @@ const menuItems = [
     icon: Calculator,
     path: "/salario-avulso",
     color: "bg-secondary text-secondary-foreground",
+    tool: "salary_adhoc",
   },
   {
     title: "Funcionários",
@@ -39,6 +53,7 @@ const menuItems = [
     icon: Users,
     path: "/funcionarios",
     color: "bg-secondary text-secondary-foreground",
+    tool: "employees",
   },
   {
     title: "Atestados",
@@ -46,6 +61,7 @@ const menuItems = [
     icon: ClipboardList,
     path: "/atestados",
     color: "bg-accent text-accent-foreground",
+    tool: "certificates",
   },
   {
     title: "Histórico",
@@ -53,12 +69,42 @@ const menuItems = [
     icon: History,
     path: "/historico",
     color: "bg-secondary text-secondary-foreground",
+    tool: "history",
   },
 ];
 
 const Index = () => {
   const navigate = useNavigate();
-  const { company, logout } = useAuth();
+  const { company, logout, login } = useAuth();
+
+  useEffect(() => {
+    if (!company?.id || !company.token) return;
+    const { id, token } = company;
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await api.auth.companySession();
+        if (cancelled) return;
+        login({
+          role: "company",
+          id,
+          name: data.company.name,
+          cnpj: data.company.cnpj,
+          token,
+          toolAccess: mergeClientToolAccess(data.tool_access),
+        });
+      } catch {
+        /* sessão inválida ou rede: mantém estado local */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [company?.id, company?.token, login]);
+
+  const visibleItems = company
+    ? menuItems.filter((item) => isToolAllowed(company.toolAccess, item.tool))
+    : menuItems;
 
   const handleLogout = () => {
     logout();
@@ -89,7 +135,12 @@ const Index = () => {
 
       <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
         <div className="space-y-3">
-          {menuItems.map((item) => (
+          {visibleItems.length === 0 && (
+            <p className="rounded-lg border border-dashed bg-muted/40 px-4 py-6 text-center text-sm text-muted-foreground">
+              Nenhuma ferramenta está liberada para esta empresa. Contacte o administrador.
+            </p>
+          )}
+          {visibleItems.map((item) => (
             <Card
               key={item.path}
               className="cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"

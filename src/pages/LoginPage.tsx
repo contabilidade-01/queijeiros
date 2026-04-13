@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
+import { mergeClientToolAccess } from "@/lib/companyTools";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
@@ -44,6 +45,7 @@ const LoginPage = () => {
         name: data.company.name,
         cnpj: data.company.cnpj,
         token: data.token,
+        toolAccess: mergeClientToolAccess(data.company.tool_access),
       });
       toast.success(`Bem-vindo! ${data.company.name}`);
       navigate("/");
@@ -99,6 +101,13 @@ const LoginPage = () => {
               <LogIn className="h-5 w-5" />
               {loading ? "Entrando..." : "Entrar"}
             </Button>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              <strong>Administrador:</strong> login com o CPF do admin (11 dígitos). A senha inicial padrão é o{" "}
+              <strong>CNPJ da empresa exemplo &quot;Gestão Empresa&quot;</strong> —{" "}
+              <span className="font-mono text-foreground/90">35736034000123</span> ou com máscara{" "}
+              <span className="font-mono text-foreground/90">35.736.034/0001-23</span>. Não é o seu CPF. Empresas:
+              senha = CNPJ só dígitos (máscara também funciona).
+            </p>
           </form>
         </CardContent>
         <CardFooter className="flex flex-col border-t px-6 pb-6 pt-4">

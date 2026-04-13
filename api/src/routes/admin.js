@@ -3,6 +3,8 @@ const bcrypt = require("bcryptjs");
 const db = require("../db");
 const { authMiddleware } = require("../middleware/auth");
 const { validateUUID, validateEmailFormat, validateString, validateCNPJ } = require("../middleware/validate");
+const { mergeToolAccess } = require("../companyTools");
+const { listCompanies, insertCompanyRow, PG_UNDEFINED_COLUMN } = require("../toolAccessDb");
 
 function adminOnly(req, res, next) {
   if (!req.isAdmin) {
@@ -36,10 +38,8 @@ router.get("/summary", async (_req, res) => {
 
 router.get("/companies", async (_req, res) => {
   try {
-    const { rows } = await db.query(
-      "SELECT id, name, cnpj, contact_email, phone, created_at FROM companies ORDER BY name"
-    );
-    res.json(rows);
+    const rows = await listCompanies(db);
+    res.json(rows.map((r) => ({ ...r, tool_access: mergeToolAccess(r.tool_access) })));
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Erro interno" });
@@ -80,14 +80,15 @@ router.post("/companies", async (req, res) => {
       }
     }
     const passwordHash = await bcrypt.hash(cnpjDigits, 10);
-    const { rows } = await db.query(
-      `INSERT INTO companies (name, cnpj, password_hash, contact_email, phone)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id, name, cnpj, contact_email, phone, created_at`,
-      [name.trim(), cnpjDigits, passwordHash, emailNorm, phoneNorm]
-    );
+    const created = await insertCompanyRow(db, {
+      name: name.trim(),
+      cnpjDigits,
+      passwordHash,
+      emailNorm,
+      phoneNorm,
+    });
     res.status(201).json({
-      company: rows[0],
+      company: { ...created, tool_access: mergeToolAccess(created.tool_access) },
       message: "Empresa criada. Login: CNPJ com ou sem máscara. Senha inicial: só os 14 dígitos do CNPJ.",
     });
   } catch (err) {
@@ -181,18 +182,57 @@ router.patch("/companies/:id", async (req, res) => {
       }
     }
 
+    if (Object.prototype.hasOwnProperty.call(req.body, "tool_access")) {
+      const ta = req.body.tool_access;
+      if (ta === null || typeof ta !== "object" || Array.isArray(ta)) {
+        return res.status(400).json({ error: "tool_access deve ser um objeto com as chaves das ferramentas" });
+      }
+      sets.push(`tool_access = $${i++}::jsonb`);
+      vals.push(JSON.stringify(mergeToolAccess(ta)));
+    }
+
     if (!sets.length) {
-      return res.status(400).json({ error: "Envie ao menos um campo: name, contact_email ou phone" });
+      return res.status(400).json({
+        error: "Envie ao menos um campo: name, contact_email, phone ou tool_access",
+      });
     }
 
     vals.push(id);
+    const hasToolAccessSet = sets.some((s) => s.startsWith("tool_access"));
+    const sqlBase = `UPDATE companies SET ${sets.join(", ")} WHERE id = $${i}`;
     const client = await db.connect();
     try {
       await client.query("BEGIN");
-      const { rows, rowCount } = await client.query(
-        `UPDATE companies SET ${sets.join(", ")} WHERE id = $${i} RETURNING id, name, cnpj, contact_email, phone, created_at`,
-        vals
-      );
+      let rows;
+      let rowCount;
+      try {
+        const r = await client.query(
+          `${sqlBase} RETURNING id, name, cnpj, contact_email, phone, tool_access, created_at`,
+          vals
+        );
+        rows = r.rows;
+        rowCount = r.rowCount;
+      } catch (e) {
+        if (e.code === PG_UNDEFINED_COLUMN && hasToolAccessSet) {
+          await client.query("ROLLBACK");
+          return res.status(503).json({
+            error:
+              "A base ainda não tem a coluna tool_access. Reinicie o contentor da API (migração no arranque) ou execute db/migration-add-tool-access.sql no Postgres.",
+          });
+        }
+        if (e.code === PG_UNDEFINED_COLUMN) {
+          await client.query("ROLLBACK");
+          await client.query("BEGIN");
+          const r = await client.query(
+            `${sqlBase} RETURNING id, name, cnpj, contact_email, phone, created_at`,
+            vals
+          );
+          rows = r.rows.map((row) => ({ ...row, tool_access: null }));
+          rowCount = r.rowCount;
+        } else {
+          throw e;
+        }
+      }
       if (!rowCount) {
         await client.query("ROLLBACK");
         return res.status(404).json({ error: "Empresa não encontrada" });
@@ -204,7 +244,8 @@ router.patch("/companies/:id", async (req, res) => {
         ]);
       }
       await client.query("COMMIT");
-      res.json(rows[0]);
+      const row = rows[0];
+      res.json({ ...row, tool_access: mergeToolAccess(row.tool_access) });
     } catch (e) {
       await client.query("ROLLBACK").catch(() => {});
       throw e;
